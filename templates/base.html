@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SOCOMA - Suivi des Créances{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <!-- Logo image -->
+                <img src="{{ url_for('static', filename='logo.png') }}" 
+                     alt="SOCOMA" 
+                     height="40"
+                     style="max-width: 100%; object-fit: contain;">
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCOMA</h1>
+                <p class="subtitle">{% block subtitle %}Gestion Professionnelle{% endblock %}</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link {% if request.endpoint == 'accueil' %}active{% endif %}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link {% if request.endpoint == 'liste_creances' %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link {% if request.endpoint == 'tableau_bord' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link {% if request.endpoint == 'commerciaux' %}active{% endif %}">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link {% if request.endpoint == 'gestion_utilisateurs' %}active{% endif %}">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCOMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('commerciaux') }}">Commerciaux</a>
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

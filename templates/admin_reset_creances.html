@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réinitialisation Créances - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .warning-section {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-section {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .action-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .action-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .action-card.warning { border-left-color: #f39c12; }
+        .action-card.danger { border-left-color: #e74c3c; }
+        .action-card.info { border-left-color: #3498db; }
+        
+        .action-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .action-desc {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .confirmation-code {
+            font-family: monospace;
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Administration - Réinitialisation</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            <a href="{{ url_for('admin_reset_creances') }}" class="nav-link active">
+                <i class="fas fa-redo"></i> Réinitialisation
+            </a>
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- Avertissement important -->
+            <div class="warning-section">
+                <h2><i class="fas fa-exclamation-triangle"></i> Attention - Opérations Sensibles</h2>
+                <p>Cette section permet des opérations administratives critiques. Les actions effectuées ici peuvent modifier ou supprimer définitivement des données. Ces opérations sont réservées aux administrateurs et doivent être réalisées avec précaution.</p>
+            </div>
+
+            <!-- Statistiques du commercial sélectionné -->
+            {% if commercial_selected %}
+            <div class="stats-section">
+                <h3><i class="fas fa-chart-bar"></i> Statistiques de {{ commercial_selected }}</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Créances</div>
+                        <div class="stat-value">{{ stats.count }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Créances Soldées</div>
+                        <div class="stat-value">{{ stats.soldees }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Montant Total</div>
+                        <div class="stat-value">{{ stats.montant_total|format_money }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Montant à Solder</div>
+                        <div class="stat-value">{{ stats.montant_solde|format_money }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulaire de sélection -->
+            <div class="action-section">
+                <h3><i class="fas fa-user-tie"></i> Sélection du Commercial</h3>
+                <form method="GET" action="{{ url_for('admin_reset_creances') }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="commercial">Sélectionner un commercial</label>
+                            <select id="commercial" name="commercial" class="form-control" onchange="this.form.submit()">
+                                <option value="">Sélectionnez un commercial</option>
+                                <option value="YAYA CAMARA" {% if commercial_selected == 'YAYA CAMARA' %}selected{% endif %}>YAYA CAMARA</option>
+                                <option value="BADRA KEITA" {% if commercial_selected == 'BADRA KEITA' %}selected{% endif %}>BADRA KEITA</option>
+                                <option value="ISSA DIAKITE" {% if commercial_selected == 'ISSA DIAKITE' %}selected{% endif %}>ISSA DIAKITE</option>
+                                <option value="DIDIER DEMBELE" {% if commercial_selected == 'DIDIER DEMBELE' %}selected{% endif %}>DIDIER DEMBELE</option>
+                                <option value="TOUS">TOUS LES COMMERCIAUX</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Actions disponibles -->
+            {% if commercial_selected %}
+            <div class="action-section">
+                <h3><i class="fas fa-bolt"></i> Actions Disponibles</h3>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">Sélectionnez une action à effectuer sur les données de {{ commercial_selected }}</p>
+                
+                <form method="POST" action="{{ url_for('admin_reset_creances') }}" id="resetForm">
+                    <input type="hidden" name="commercial" value="{{ commercial_selected }}">
+                    
+                    <div class="form-row">
+                        <!-- Action 1: Solde toutes les créances -->
+                        <div class="action-card warning">
+                            <div class="action-icon" style="color: #f39c12;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="action-title">Solde Toutes les Créances</div>
+                            <div class="action-desc">
+                                Marque toutes les créances comme soldées<br>
+                                Conserve les données dans l'historique<br>
+                                Action réversible
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" id="action_solder" name="action" value="solder_toutes" 
+                                       class="form-check-input" required>
+                                <label for="action_solder" class="form-check-label">
+                                    <strong>Solder {{ stats.count }} créances</strong>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Action 2: Supprimer les créances soldées -->
+                        <div class="action-card info">
+                            <div class="action-icon" style="color: #3498db;">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                            <div class="action-title">Supprimer Créances Soldées</div>
+                            <div class="action-desc">
+                                Supprime uniquement les créances déjà soldées<br>
+                                Conserve les créances en cours<br>
+                                Action irréversible
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" id="action_supp_soldees" name="action" value="supprimer_soldees" 
+                                       class="form-check-input">
+                                <label for="action_supp_soldees" class="form-check-label">
+                                    <strong>Supprimer {{ stats.soldees }} créances soldées</strong>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Action 3: Supprimer toutes les créances -->
+                        <div class="action-card danger">
+                            <div class="action-icon" style="color: #e74c3c;">
+                                <i class="fas fa-skull-crossbones"></i>
+                            </div>
+                            <div class="action-title">Supprimer Toutes les Créances</div>
+                            <div class="action-desc">
+                                Supprime TOUTES les créances du commercial<br>
+                                Données définitivement perdues<br>
+                                Action TRÈS DANGEREUSE
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" id="action_supp_toutes" name="action" value="supprimer_toutes" 
+                                       class="form-check-input">
+                                <label for="action_supp_toutes" class="form-check-label">
+                                    <strong>Supprimer {{ stats.count }} créances</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Raison de l'action -->
+                    <div class="form-group mt-30">
+                        <label for="reason" class="required">Raison de l'action</label>
+                        <textarea id="reason" name="reason" class="form-control" rows="3" 
+                                  placeholder="Expliquez pourquoi vous effectuez cette action (requis)" required></textarea>
+                        <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                            Cette information sera enregistrée dans les logs
+                        </div>
+                    </div>
+                    
+                    <!-- Code de confirmation -->
+                    <div class="form-group">
+                        <label for="confirmation_code" class="required">Code de confirmation</label>
+                        <div class="confirmation-code" id="confirmationCodeDisplay">
+                            {{ confirmation_code }}
+                        </div>
+                        <input type="text" id="confirmation_code" name="confirmation_code" class="form-control" 
+                               placeholder="Entrez le code ci-dessus" required>
+                        <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                            Mesure de sécurité pour éviter les actions accidentelles
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-between align-center mt-40">
+                        <div>
+                            <a href="{{ url_for('gestion_utilisateurs') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annuler
+                            </a>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-danger btn-large" onclick="showConfirmation()">
+                                <i class="fas fa-exclamation-triangle"></i> Exécuter l'action
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="action-section">
+                <div style="text-align: center; padding: 40px; color: #95a5a6;">
+                    <i class="fas fa-user-tie" style="font-size: 4rem;"></i>
+                    <h3>Sélectionnez un commercial pour continuer</h3>
+                    <p>Choisissez un commercial dans la liste déroulante ci-dessus pour voir les actions disponibles.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Journal des actions -->
+            <div class="action-section">
+                <h3><i class="fas fa-history"></i> Historique des Actions</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Administrateur</th>
+                                <th>Commercial</th>
+                                <th>Action</th>
+                                <th>Raison</th>
+                                <th>Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ now.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>{{ current_user.username }}</td>
+                                <td>{{ commercial_selected or 'Aucun' }}</td>
+                                <td>Consultation</td>
+                                <td>Visualisation des données</td>
+                                <td>Aucun</td>
+                            </tr>
+                            <!-- Les actions précédentes seraient stockées en base de données -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation -->
+    <div class="modal-overlay" id="confirmationModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i> Dernière Confirmation</h3>
+            <p>Vous êtes sur le point d'effectuer une action <strong>IRRÉVERSIBLE</strong> sur les données de <strong>{{ commercial_selected }}</strong>.</p>
+            
+            <div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Cette action ne peut pas être annulée.</strong><br>
+                Les données affectées seront définitivement modifiées ou supprimées.
+            </div>
+            
+            <p>Pour confirmer, tapez <strong>"CONFIRMER {{ commercial_selected }}"</strong> ci-dessous :</p>
+            
+            <input type="text" id="finalConfirmation" class="form-control" 
+                   placeholder='Tapez "CONFIRMER {{ commercial_selected }}"'>
+            
+            <div class="d-flex justify-between align-center mt-30">
+                <button type="button" class="btn btn-secondary" onclick="hideConfirmation()">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitForm()" id="submitButton" disabled>
+                    <i class="fas fa-check"></i> Confirmer et Exécuter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('gestion_utilisateurs') }}">Utilisateurs</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a>
+        </p>
+    </div>
+
+    <script>
+        // Générer un code de confirmation aléatoire
+        function generateConfirmationCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+        
+        // Afficher la modal de confirmation
+        function showConfirmation() {
+            const action = document.querySelector('input[name="action"]:checked');
+            const reason = document.getElementById('reason').value;
+            const confirmationCode = document.getElementById('confirmation_code').value;
+            const expectedCode = document.getElementById('confirmationCodeDisplay').textContent.trim();
+            
+            // Validation basique
+            if (!action) {
+                alert('Veuillez sélectionner une action');
+                return;
+            }
+            
+            if (!reason || reason.trim().length < 10) {
+                alert('Veuillez fournir une raison détaillée (minimum 10 caractères)');
+                return;
+            }
+            
+            if (confirmationCode !== expectedCode) {
+                alert('Le code de confirmation est incorrect');
+                return;
+            }
+            
+            // Afficher la modal
+            document.getElementById('confirmationModal').style.display = 'flex';
+            
+            // Activer/désactiver le bouton de soumission
+            const finalConfirmation = document.getElementById('finalConfirmation');
+            const submitButton = document.getElementById('submitButton');
+            
+            finalConfirmation.addEventListener('input', function() {
+                const expectedText = `CONFIRMER {{ commercial_selected }}`;
+                submitButton.disabled = this.value.toUpperCase() !== expectedText.toUpperCase();
+            });
+        }
+        
+        // Cacher la modal
+        function hideConfirmation() {
+            document.getElementById('confirmationModal').style.display = 'none';
+            document.getElementById('finalConfirmation').value = '';
+            document.getElementById('submitButton').disabled = true;
+        }
+        
+        // Soumettre le formulaire
+        function submitForm() {
+            document.getElementById('resetForm').submit();
+        }
+        
+        // Générer un nouveau code de confirmation
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeDisplay = document.getElementById('confirmationCodeDisplay');
+            if (codeDisplay) {
+                codeDisplay.textContent = generateConfirmationCode();
+            }
+            
+            // Empêcher la soumission par défaut
+            document.getElementById('resetForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                showConfirmation();
+            });
+        });
+    </script>
+</body>
+</html>

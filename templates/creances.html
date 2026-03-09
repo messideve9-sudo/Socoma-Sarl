@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Créances - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header (identique à index.html) -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Liste des Créances</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link active">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Messages Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <div class="d-flex justify-between align-center mb-30">
+                <h2><i class="fas fa-file-invoice-dollar"></i> Liste des Créances</h2>
+                <div class="btn-group">
+                    <a href="{{ url_for('ajouter_creance') }}" class="btn btn-success">
+                        <i class="fas fa-plus-circle"></i> Ajouter une Créance
+                    </a>
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-info">
+                        <i class="fas fa-file-excel"></i> Exporter Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="commercial_filter">Commercial</label>
+                    <select id="commercial_filter" class="form-control">
+                        <option value="Tous">Tous les commerciaux</option>
+                        {% for commercial in commerciaux %}
+                            <option value="{{ commercial }}" {% if selected_commercial == commercial %}selected{% endif %}>
+                                {{ commercial }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="statut_filter">Statut</label>
+                    <select id="statut_filter" class="form-control">
+                        <option value="Tous">Tous les statuts</option>
+                        <option value="A RELANCER" {% if selected_statut == 'A RELANCER' %}selected{% endif %}>À Relancer</option>
+                        <option value="A SURVEILLER" {% if selected_statut == 'A SURVEILLER' %}selected{% endif %}>À Surveiller</option>
+                        <option value="AUJOURD'HUI" {% if selected_statut == 'AUJOURD\'HUI' %}selected{% endif %}>Aujourd'hui</option>
+                        <option value="SOLDÉ" {% if selected_statut == 'SOLDÉ' %}selected{% endif %}>Soldé</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <button id="btn_filtrer" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <button id="btn_reset_filtres" class="btn btn-secondary">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tableau des créances -->
+            <div class="table-responsive">
+                <table id="creances_table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Commercial</th>
+                            <th>Client</th>
+                            <th>Marché</th>
+                            <th>Montant</th>
+                            <th>Versement</th>
+                            <th>Solde</th>
+                            <th>Date Échéance</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if creances %}
+                            {% for creance in creances %}
+                            <tr>
+                                <td>{{ creance.id }}</td>
+                                <td>{{ creance.date_creation|format_date }}</td>
+                                <td>{{ creance.commercial }}</td>
+                                <td>{{ creance.client }}</td>
+                                <td>{{ creance.marche }}</td>
+                                <td>{{ creance.montant|format_money }}</td>
+                                <td>{{ creance.versement|format_money }}</td>
+                                <td>{{ creance.solde|format_money }}</td>
+                                <td>{{ creance.date_echeance|format_date }}</td>
+                                <td>
+                                    <span class="statut statut-{{ creance.statut|lower|replace(' ', '-')|replace('à', 'a') }}">
+                                        {{ creance.statut }}
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <a href="{{ url_for('modifier_creance', id=creance.id) }}" class="btn btn-small btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('supprimer_creance', id=creance.id) }}" 
+                                       class="btn btn-small btn-danger"
+                                       onclick="return confirm('Supprimer cette créance ?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted">
+                                    <i class="fas fa-inbox"></i> Aucune créance trouvée
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Résumé -->
+            {% if creances %}
+            <div class="card mt-30">
+                <h3><i class="fas fa-chart-pie"></i> Résumé</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Total Créances</h4>
+                        <div class="stat-value">{{ creances|sum(attribute='montant')|format_money }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total Soldé</h4>
+                        <div class="stat-value">{{ creances|sum(attribute='versement')|format_money }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total à Solder</h4>
+                        <div class="stat-value">{{ creances|sum(attribute='solde')|format_money }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Nombre</h4>
+                        <div class="stat-value">{{ creances|length }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('recap_clients') }}">Clients</a>
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Initialisation des filtres
+        document.getElementById('btn_filtrer').addEventListener('click', function() {
+            const commercial = document.getElementById('commercial_filter').value;
+            const statut = document.getElementById('statut_filter').value;
+            
+            let url = '/creances?';
+            if (commercial !== 'Tous') url += 'commercial=' + encodeURIComponent(commercial) + '&';
+            if (statut !== 'Tous') url += 'statut=' + encodeURIComponent(statut);
+            
+            window.location.href = url;
+        });
+    </script>
+</body>
+</html>

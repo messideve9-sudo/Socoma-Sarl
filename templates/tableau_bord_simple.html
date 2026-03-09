@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tableau de Bord Simple</title>
+</head>
+<body>
+    <h1>Tableau de Bord</h1>
+    <p>Total Créances: {{ total_creances|format_money }}</p>
+    <p>Total Versement: {{ total_versement|format_money }}</p>
+    <p>Solde Restant: {{ total_solde|format_money }}</p>
+    <p>Nombre de créances: {{ nombre_creances }}</p>
+</body>
+</html>

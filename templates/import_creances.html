@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Excel - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .import-header {
+            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin: 30px 0;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            background: #e3f2fd;
+            border-color: #2980b9;
+        }
+        
+        .upload-area.dragover {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+        
+        .file-info {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+            display: none;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .file-size {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .template-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .template-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            margin: 20px 0;
+        }
+        
+        .column-guide {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .column-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .column-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .column-desc {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .progress-container {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .results-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Import de données depuis Excel</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            <a href="{{ url_for('admin_reset_creances') }}" class="nav-link">
+                <i class="fas fa-redo"></i> Réinitialisation
+            </a>
+            <a href="{{ url_for('import_creances') }}" class="nav-link active">
+                <i class="fas fa-file-import"></i> Import Excel
+            </a>
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- En-tête -->
+            <div class="import-header">
+                <h2><i class="fas fa-file-import"></i> Importation de Créances</h2>
+                <p>Importez des créances depuis un fichier Excel ou CSV. Assurez-vous que le fichier respecte le format requis.</p>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card mb-30">
+                <h3><i class="fas fa-info-circle"></i> Instructions</h3>
+                <p>Pour importer des créances, suivez ces étapes :</p>
+                <ol style="margin: 15px 0 15px 20px;">
+                    <li>Téléchargez le modèle Excel ci-dessous</li>
+                    <li>Remplissez-le avec vos données</li>
+                    <li>Glissez-déposez ou sélectionnez le fichier</li>
+                    <li>Vérifiez les données et confirmez l'import</li>
+                </ol>
+                <div class="btn-group mt-20">
+                    <a href="#" onclick="downloadTemplate()" class="btn btn-success">
+                        <i class="fas fa-download"></i> Télécharger le modèle Excel
+                    </a>
+                    <a href="#" onclick="downloadTemplateCSV()" class="btn btn-info">
+                        <i class="fas fa-download"></i> Télécharger le modèle CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Zone de dépôt de fichier -->
+            <form method="POST" action="{{ url_for('import_creances') }}" enctype="multipart/form-data" id="importForm">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3>Glissez-déposez votre fichier ici</h3>
+                    <p style="color: #7f8c8d; margin: 10px 0 20px;">
+                        ou <span style="color: #3498db; font-weight: 600;">cliquez pour sélectionner</span>
+                    </p>
+                    <div style="font-size: 14px; color: #95a5a6;">
+                        Formats supportés: .xlsx, .xls, .csv (Max 10MB)
+                    </div>
+                    <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                </div>
+                
+                <!-- Informations du fichier -->
+                <div class="file-info" id="fileInfo">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                    <button type="button" class="btn btn-danger btn-small mt-10" onclick="removeFile()">
+                        <i class="fas fa-times"></i> Supprimer
+                    </button>
+                </div>
+                
+                <!-- Options d'import -->
+                <div class="card" id="importOptions" style="display: none;">
+                    <h3><i class="fas fa-cog"></i> Options d'import</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="import_mode">Mode d'import</label>
+                            <select id="import_mode" name="import_mode" class="form-control">
+                                <option value="ajouter">Ajouter les nouvelles créances</option>
+                                <option value="remplacer">Remplacer toutes les créances</option>
+                                <option value="fusionner">Fusionner avec les existantes</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="date_format">Format de date</label>
+                            <select id="date_format" name="date_format" class="form-control">
+                                <option value="auto">Détection automatique</option>
+                                <option value="dd/mm/yyyy">JJ/MM/AAAA</option>
+                                <option value="yyyy-mm-dd">AAAA-MM-JJ</option>
+                                <option value="mm/dd/yyyy">MM/JJ/AAAA</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check mt-20">
+                        <input type="checkbox" id="ignore_errors" name="ignore_errors" class="form-check-input" checked>
+                        <label for="ignore_errors" class="form-check-label">
+                            Ignorer les lignes avec erreurs et continuer
+                        </label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="send_email" name="send_email" class="form-check-input">
+                        <label for="send_email" class="form-check-label">
+                            M'envoyer un email de confirmation
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Bouton d'import -->
+                <div class="d-flex justify-center mt-40">
+                    <button type="submit" class="btn btn-success btn-large" id="importButton" style="display: none;">
+                        <i class="fas fa-upload"></i> Commencer l'import
+                    </button>
+                </div>
+            </form>
+
+            <!-- Section modèle -->
+            <div class="template-section">
+                <h3><i class="fas fa-table"></i> Format du fichier requis</h3>
+                <p>Votre fichier doit contenir les colonnes suivantes (l'ordre n'est pas important) :</p>
+                
+                <div class="template-table">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Commercial</th>
+                                    <th>Client</th>
+                                    <th>Marché</th>
+                                    <th>Montant</th>
+                                    <th>Versement</th>
+                                    <th>Date Facturation</th>
+                                    <th>Date Échéance</th>
+                                    <th>Commentaires</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>YAYA CAMARA</td>
+                                    <td>FANTA DIARRA</td>
+                                    <td>BAGADADJI</td>
+                                    <td>150000</td>
+                                    <td>50000</td>
+                                    <td>2024-01-15</td>
+                                    <td>2024-01-25</td>
+                                    <td>Premier versement</td>
+                                </tr>
+                                <tr>
+                                    <td>BADRA KEITA</td>
+                                    <td>ALOU SIDIBE</td>
+                                    <td>DIBIDANI</td>
+                                    <td>200000</td>
+                                    <td>0</td>
+                                    <td>2024-01-20</td>
+                                    <td>2024-01-30</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="column-guide">
+                    <div class="column-item">
+                        <div class="column-name">Commercial (OBLIGATOIRE)</div>
+                        <div class="column-desc">Nom du commercial: YAYA CAMARA, BADRA KEITA, ISSA DIAKITE ou DIDIER DEMBELE</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Client (OBLIGATOIRE)</div>
+                        <div class="column-desc">Nom complet du client: Prénom + Nom</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Marché</div>
+                        <div class="column-desc">Nom du marché (optionnel)</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Montant (OBLIGATOIRE)</div>
+                        <div class="column-desc">Montant de la créance en FCFA (sans devise)</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Versement</div>
+                        <div class="column-desc">Montant déjà versé (0 si aucun)</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Date Facturation</div>
+                        <div class="column-desc">Date de création (AAAA-MM-JJ)</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Date Échéance</div>
+                        <div class="column-desc">Date d'échéance (calculée automatiquement si vide)</div>
+                    </div>
+                    
+                    <div class="column-item">
+                        <div class="column-name">Commentaires</div>
+                        <div class="column-desc">Informations complémentaires</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section progression (masquée par défaut) -->
+            <div class="progress-container" id="progressContainer">
+                <h3><i class="fas fa-sync-alt fa-spin"></i> Import en cours...</h3>
+                <p>Veuillez patienter pendant l'importation des données.</p>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="d-flex justify-between">
+                    <div id="progressText">Préparation...</div>
+                    <div id="progressPercent">0%</div>
+                </div>
+                
+                <div class="alert alert-info mt-20" id="progressMessage">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="messageText">Initialisation de l'import...</span>
+                </div>
+            </div>
+
+            <!-- Section résultats (masquée par défaut) -->
+            <div class="results-section" id="resultsSection">
+                <div class="card">
+                    <h3><i class="fas fa-check-circle text-success"></i> Import terminé avec succès</h3>
+                    
+                    <div class="stats-grid mt-20">
+                        <div class="stat-card">
+                            <h4>Créances importées</h4>
+                            <div class="stat-value" id="importedCount">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h4>Créances ignorées</h4>
+                            <div class="stat-value" id="ignoredCount">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h4>Erreurs</h4>
+                            <div class="stat-value" id="errorCount">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <h4>Temps d'import</h4>
+                            <div class="stat-value" id="importTime">0s</div>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group mt-30">
+                        <a href="{{ url_for('liste_creances') }}" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> Voir les créances importées
+                        </a>
+                        <button type="button" class="btn btn-secondary" onclick="resetImport()">
+                            <i class="fas fa-redo"></i> Nouvel import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('gestion_utilisateurs') }}">Utilisateurs</a> • 
+            <a href="{{ url_for('admin_reset_creances') }}">Réinitialisation</a>
+        </p>
+    </div>
+
+    <script>
+        // Gestion du drag & drop
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const importOptions = document.getElementById('importOptions');
+        const importButton = document.getElementById('importButton');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+               });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        function handleFileSelect(event) {
+            if (event.target.files.length) {
+                handleFile(event.target.files[0]);
+            }
+        }
+        
+        function handleFile(file) {
+            // Validation du fichier
+            const validTypes = [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel',
+                'text/csv',
+                'application/vnd.oasis.opendocument.spreadsheet'
+            ];
+            
+            const validExtensions = ['.xlsx', '.xls', '.csv', '.ods'];
+            
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExt)) {
+                alert('Format de fichier non supporté. Utilisez .xlsx, .xls ou .csv');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                alert('Le fichier est trop volumineux. Maximum 10MB');
+                return;
+            }
+            
+            // Afficher les informations du fichier
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            importOptions.style.display = 'block';
+            importButton.style.display = 'block';
+            
+            // Mettre à jour le file input
+            fileInput.files = new DataTransfer().files;
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function removeFile() {
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            importOptions.style.display = 'none';
+            importButton.style.display = 'none';
+        }
+        
+        // Gestion de l'import
+        document.getElementById('importForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Afficher la progression
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('uploadArea').style.display = 'none';
+            document.getElementById('importOptions').style.display = 'none';
+            document.getElementById('importButton').style.display = 'none';
+            
+            // Simuler une progression (dans la vraie app, ce serait avec AJAX)
+            simulateProgress();
+            
+            // Soumission réelle
+            setTimeout(() => {
+                this.submit();
+            }, 2000);
+        });
+        
+        function simulateProgress() {
+            let progress = 0;
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressText = document.getElementById('progressText');
+            const messageText = document.getElementById('messageText');
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                
+                if (progress <= 25) {
+                    progressText.textContent = 'Validation du fichier...';
+                    messageText.textContent = 'Vérification du format et des données';
+                } else if (progress <= 50) {
+                    progressText.textContent = 'Lecture des données...';
+                    messageText.textContent = 'Extraction des informations depuis le fichier';
+                } else if (progress <= 75) {
+                    progressText.textContent = 'Traitement des créances...';
+                    messageText.textContent = 'Création des enregistrements dans la base de données';
+                } else if (progress <= 90) {
+                    progressText.textContent = 'Finalisation...';
+                    messageText.textContent = 'Mise à jour des statistiques et index';
+                } else {
+                    progressText.textContent = 'Import terminé !';
+                    messageText.textContent = 'Redirection vers la liste des créances...';
+                    clearInterval(interval);
+                }
+                
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = progress + '%';
+                
+            }, 100);
+        }
+        
+        function downloadTemplate() {
+            // Créer un modèle Excel simple
+            const template = {
+                Commercial: ['YAYA CAMARA', 'BADRA KEITA'],
+                Client: ['FANTA DIARRA', 'ALOU SIDIBE'],
+                Marché: ['BAGADADJI', 'DIBIDANI'],
+                Montant: [150000, 200000],
+                Versement: [50000, 0],
+                'Date Facturation': ['2024-01-15', '2024-01-20'],
+                'Date Échéance': ['2024-01-25', '2024-01-30'],
+                Commentaires: ['Premier versement', '']
+            };
+            
+            // Convertir en CSV
+            let csvContent = 'Commercial,Client,Marché,Montant,Versement,Date Facturation,Date Échéance,Commentaires\n';
+            
+            for (let i = 0; i < 2; i++) {
+                csvContent += `${template.Commercial[i]},${template.Client[i]},${template.Marché[i]},${template.Montant[i]},${template.Versement[i]},${template['Date Facturation'][i]},${template['Date Échéance'][i]},${template.Commentaires[i]}\n`;
+            }
+            
+            // Télécharger
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'modele_import_socoma.csv';
+            link.click();
+        }
+        
+        function downloadTemplateCSV() {
+            downloadTemplate(); // Même fonction pour CSV
+        }
+        
+        function resetImport() {
+            // Réinitialiser l'interface
+            removeFile();
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('uploadArea').style.display = 'block';
+            
+            // Réinitialiser le formulaire
+            document.getElementById('importForm').reset();
+        }
+        
+        // Afficher les résultats si l'import vient de se terminer
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if import_results %}
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('uploadArea').style.display = 'none';
+                document.getElementById('importOptions').style.display = 'none';
+                document.getElementById('importButton').style.display = 'none';
+                
+                // Remplir les résultats
+                document.getElementById('importedCount').textContent = '{{ import_results.get("imported", 0) }}';
+                document.getElementById('ignoredCount').textContent = '{{ import_results.get("ignored", 0) }}';
+                document.getElementById('errorCount').textContent = '{{ import_results.get("errors", 0) }}';
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

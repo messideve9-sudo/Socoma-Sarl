@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Commerciaux - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .commercials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .commercial-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .commercial-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .commercial-header {
+            padding: 25px;
+            color: white;
+            text-align: center;
+            position: relative;
+        }
+        
+        .commercial-avatar {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            border: 4px solid white;
+        }
+        
+        .commercial-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .commercial-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .commercial-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        /* ===== NOUVEAUX STYLES POUR LE TOGGLE ===== */
+        .clients-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .clients-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .clients-title {
+            font-size: 14px;
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        .clients-title i {
+            margin-right: 5px;
+        }
+        
+        .toggle-clients-btn {
+            background: transparent;
+            border: 1px solid #3498db;
+            color: #3498db;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .toggle-clients-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .toggle-clients-btn.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .toggle-clients-btn i {
+            transition: transform 0.3s ease;
+        }
+        
+        .toggle-clients-btn.active i {
+            transform: rotate(180deg);
+        }
+        
+        .clients-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+            visibility: hidden;
+            padding: 0;
+        }
+        
+        .clients-list.expanded {
+            max-height: 500px;
+            opacity: 1;
+            visibility: visible;
+            transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
+            overflow-y: auto;
+            padding: 0;
+        }
+        
+        .client-item {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .client-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .client-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .client-info {
+            font-size: 12px;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .client-info i {
+            color: #3498db;
+            margin-right: 3px;
+        }
+        /* ===== FIN NOUVEAUX STYLES ===== */
+        
+        .performance-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .performance-excellent { background: #27ae60; color: white; }
+        .performance-good { background: #3498db; color: white; }
+        .performance-average { background: #f39c12; color: white; }
+        .performance-poor { background: #e74c3c; color: white; }
+        
+        .commercial-actions {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .color-yaya { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .color-badra { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .color-issa { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .color-didier { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Gestion des Commerciaux</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link active">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <div class="d-flex justify-between align-center mb-30">
+                <h2><i class="fas fa-user-tie"></i> Nos 4 Commerciaux</h2>
+                <div class="btn-group">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-info">
+                        <i class="fas fa-file-excel"></i> Exporter Données
+                    </a>
+                </div>
+            </div>
+
+            <!-- Introduction -->
+            <div class="card mb-30">
+                <h3><i class="fas fa-info-circle"></i> Équipe Commerciale SOCoMA</h3>
+                <p>Notre équipe commerciale est composée de 4 commerciaux experts, chacun responsable d'un portefeuille de clients sur des marchés spécifiques.</p>
+                <div class="stats-grid mt-20">
+                    <div class="stat-card">
+                        <h4>Total Clients</h4>
+                        <div class="stat-value">
+                            {% set total_clients = 0 %}
+                            {% for commercial, data in commerciaux.items() %}
+                                {% set total_clients = total_clients + data.clients|length %}
+                            {% endfor %}
+                            {{ total_clients }}
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Total Marchés</h4>
+                        <div class="stat-value">
+                            {% set marches_uniques = [] %}
+                            {% for commercial, data in commerciaux.items() %}
+                                {% for client in data.clients %}
+                                    {% if client.marche not in marches_uniques %}
+                                        {% set _ = marches_uniques.append(client.marche) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            {{ marches_uniques|length }}
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Performance Moyenne</h4>
+                        <div class="stat-value">
+                            {% set total_performance = 0 %}
+                            {% set count = 0 %}
+                            {% for commercial, stat in stats.items() %}
+                                {% if stat.total_montant > 0 %}
+                                    {% set performance = ((stat.total_montant - stat.total_solde) / stat.total_montant * 100)|round(0) %}
+                                    {% set total_performance = total_performance + performance %}
+                                    {% set count = count + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if count > 0 %}
+                                {{ (total_performance / count)|round(0) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grille des commerciaux -->
+            <div class="commercials-grid">
+                <!-- YAYA CAMARA -->
+                <div class="commercial-card">
+                    <div class="commercial-header color-yaya">
+                        <div class="commercial-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="commercial-name">YAYA CAMARA</div>
+                        <div class="commercial-subtitle">Commercial Senior</div>
+                        <div style="margin-top: 10px;">
+                            <span class="performance-badge performance-excellent">
+                                {% if stats['YAYA CAMARA'].total_montant > 0 %}
+                                    {{ (((stats['YAYA CAMARA'].total_montant - stats['YAYA CAMARA'].total_solde) / stats['YAYA CAMARA'].total_montant) * 100)|round(0) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ commerciaux['YAYA CAMARA'].clients|length }}</div>
+                            <div class="stat-label">Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['YAYA CAMARA'].total_creances }}</div>
+                            <div class="stat-label">Créances</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['YAYA CAMARA'].total_montant|format_money }}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value {% if stats['YAYA CAMARA'].total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ stats['YAYA CAMARA'].total_solde|format_money }}
+                            </div>
+                            <div class="stat-label">À solder</div>
+                        </div>
+                    </div>
+                    
+                    <!-- MODIFICATION : Nouvelle section avec bouton toggle -->
+                    <div class="clients-section">
+                        <div class="clients-header">
+                            <span class="clients-title">
+                                <i class="fas fa-users"></i> Clients ({{ commerciaux['YAYA CAMARA'].clients|length }})
+                            </span>
+                            <button class="toggle-clients-btn" onclick="toggleClients('yaya-clients', this)">
+                                <i class="fas fa-chevron-down"></i> Voir clients
+                            </button>
+                        </div>
+                        <div id="yaya-clients" class="clients-list">
+                            {% for client in commerciaux['YAYA CAMARA'].clients %}
+                            <div class="client-item">
+                                <div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
+                                <div class="client-info">
+                                    <span><i class="fas fa-store"></i> {{ client.marche }}</span>
+                                    <span><i class="fas fa-phone"></i> {{ client.contact }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-actions">
+                        <a href="{{ url_for('liste_creances') }}?commercial=YAYA CAMARA" class="btn btn-small btn-primary">
+                            <i class="fas fa-eye"></i> Voir créances
+                        </a>
+                        <a href="tel:{{ commerciaux['YAYA CAMARA'].clients[0].contact if commerciaux['YAYA CAMARA'].clients }}" 
+                           class="btn btn-small btn-success">
+                            <i class="fas fa-phone"></i> Appeler
+                        </a>
+                    </div>
+                </div>
+
+                <!-- BADRA KEITA -->
+                <div class="commercial-card">
+                    <div class="commercial-header color-badra">
+                        <div class="commercial-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="commercial-name">BADRA KEITA</div>
+                        <div class="commercial-subtitle">Commercial Principal</div>
+                        <div style="margin-top: 10px;">
+                            <span class="performance-badge performance-good">
+                                {% if stats['BADRA KEITA'].total_montant > 0 %}
+                                    {{ (((stats['BADRA KEITA'].total_montant - stats['BADRA KEITA'].total_solde) / stats['BADRA KEITA'].total_montant) * 100)|round(0) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ commerciaux['BADRA KEITA'].clients|length }}</div>
+                            <div class="stat-label">Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['BADRA KEITA'].total_creances }}</div>
+                            <div class="stat-label">Créances</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['BADRA KEITA'].total_montant|format_money }}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value {% if stats['BADRA KEITA'].total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ stats['BADRA KEITA'].total_solde|format_money }}
+                            </div>
+                            <div class="stat-label">À solder</div>
+                        </div>
+                    </div>
+                    
+                    <div class="clients-section">
+                        <div class="clients-header">
+                            <span class="clients-title">
+                                <i class="fas fa-users"></i> Clients ({{ commerciaux['BADRA KEITA'].clients|length }})
+                            </span>
+                            <button class="toggle-clients-btn" onclick="toggleClients('badra-clients', this)">
+                                <i class="fas fa-chevron-down"></i> Voir clients
+                            </button>
+                        </div>
+                        <div id="badra-clients" class="clients-list">
+                            {% for client in commerciaux['BADRA KEITA'].clients %}
+                            <div class="client-item">
+                                <div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
+                                <div class="client-info">
+                                    <span><i class="fas fa-store"></i> {{ client.marche }}</span>
+                                    <span><i class="fas fa-phone"></i> {{ client.contact }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-actions">
+                        <a href="{{ url_for('liste_creances') }}?commercial=BADRA KEITA" class="btn btn-small btn-primary">
+                            <i class="fas fa-eye"></i> Voir créances
+                        </a>
+                        <a href="tel:{{ commerciaux['BADRA KEITA'].clients[0].contact if commerciaux['BADRA KEITA'].clients }}" 
+                           class="btn btn-small btn-success">
+                            <i class="fas fa-phone"></i> Appeler
+                        </a>
+                    </div>
+                </div>
+
+                <!-- ISSA DIAKITE -->
+                <div class="commercial-card">
+                    <div class="commercial-header color-issa">
+                        <div class="commercial-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="commercial-name">ISSA DIAKITE</div>
+                        <div class="commercial-subtitle">Commercial Sénior</div>
+                        <div style="margin-top: 10px;">
+                            <span class="performance-badge performance-excellent">
+                                {% if stats['ISSA DIAKITE'].total_montant > 0 %}
+                                    {{ (((stats['ISSA DIAKITE'].total_montant - stats['ISSA DIAKITE'].total_solde) / stats['ISSA DIAKITE'].total_montant) * 100)|round(0) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ commerciaux['ISSA DIAKITE'].clients|length }}</div>
+                            <div class="stat-label">Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['ISSA DIAKITE'].total_creances }}</div>
+                            <div class="stat-label">Créances</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['ISSA DIAKITE'].total_montant|format_money }}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value {% if stats['ISSA DIAKITE'].total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ stats['ISSA DIAKITE'].total_solde|format_money }}
+                            </div>
+                            <div class="stat-label">À solder</div>
+                        </div>
+                    </div>
+                    
+                    <div class="clients-section">
+                        <div class="clients-header">
+                            <span class="clients-title">
+                                <i class="fas fa-users"></i> Clients ({{ commerciaux['ISSA DIAKITE'].clients|length }})
+                            </span>
+                            <button class="toggle-clients-btn" onclick="toggleClients('issa-clients', this)">
+                                <i class="fas fa-chevron-down"></i> Voir clients
+                            </button>
+                        </div>
+                        <div id="issa-clients" class="clients-list">
+                            {% for client in commerciaux['ISSA DIAKITE'].clients %}
+                            <div class="client-item">
+                                <div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
+                                <div class="client-info">
+                                    <span><i class="fas fa-store"></i> {{ client.marche }}</span>
+                                    <span><i class="fas fa-phone"></i> {{ client.contact }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-actions">
+                        <a href="{{ url_for('liste_creances') }}?commercial=ISSA DIAKITE" class="btn btn-small btn-primary">
+                            <i class="fas fa-eye"></i> Voir créances
+                        </a>
+                        <a href="tel:{{ commerciaux['ISSA DIAKITE'].clients[0].contact if commerciaux['ISSA DIAKITE'].clients }}" 
+                           class="btn btn-small btn-success">
+                            <i class="fas fa-phone"></i> Appeler
+                        </a>
+                    </div>
+                </div>
+
+                <!-- DIDIER DEMBELE -->
+                <div class="commercial-card">
+                    <div class="commercial-header color-didier">
+                        <div class="commercial-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="commercial-name">DIDIER DEMBELE</div>
+                        <div class="commercial-subtitle">Commercial Expert</div>
+                        <div style="margin-top: 10px;">
+                            <span class="performance-badge performance-good">
+                                {% if stats['DIDIER DEMBELE'].total_montant > 0 %}
+                                    {{ (((stats['DIDIER DEMBELE'].total_montant - stats['DIDIER DEMBELE'].total_solde) / stats['DIDIER DEMBELE'].total_montant) * 100)|round(0) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ commerciaux['DIDIER DEMBELE'].clients|length }}</div>
+                            <div class="stat-label">Clients</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['DIDIER DEMBELE'].total_creances }}</div>
+                            <div class="stat-label">Créances</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ stats['DIDIER DEMBELE'].total_montant|format_money }}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value {% if stats['DIDIER DEMBELE'].total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ stats['DIDIER DEMBELE'].total_solde|format_money }}
+                            </div>
+                            <div class="stat-label">À solder</div>
+                        </div>
+                    </div>
+                    
+                    <div class="clients-section">
+                        <div class="clients-header">
+                            <span class="clients-title">
+                                <i class="fas fa-users"></i> Clients ({{ commerciaux['DIDIER DEMBELE'].clients|length }})
+                            </span>
+                            <button class="toggle-clients-btn" onclick="toggleClients('didier-clients', this)">
+                                <i class="fas fa-chevron-down"></i> Voir clients
+                            </button>
+                        </div>
+                        <div id="didier-clients" class="clients-list">
+                            {% for client in commerciaux['DIDIER DEMBELE'].clients %}
+                            <div class="client-item">
+                                <div class="client-name">{{ client.prenom }} {{ client.nom }}</div>
+                                <div class="client-info">
+                                    <span><i class="fas fa-store"></i> {{ client.marche }}</span>
+                                    <span><i class="fas fa-phone"></i> {{ client.contact }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="commercial-actions">
+                        <a href="{{ url_for('liste_creances') }}?commercial=DIDIER DEMBELE" class="btn btn-small btn-primary">
+                            <i class="fas fa-eye"></i> Voir créances
+                        </a>
+                        <a href="tel:{{ commerciaux['DIDIER DEMBELE'].clients[0].contact if commerciaux['DIDIER DEMBELE'].clients }}" 
+                           class="btn btn-small btn-success">
+                            <i class="fas fa-phone"></i> Appeler
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau récapitulatif -->
+            <div class="card mt-30">
+                <h3><i class="fas fa-table"></i> Données Complètes des Commerciaux</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commercial</th>
+                                <th>Prénom</th>
+                                <th>Nom</th>
+                                <th>Marché</th>
+                                <th>Contact</th>
+                                <th>Créances</th>
+                                <th>Total</th>
+                                <th>À solder</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commercial, data in commerciaux.items() %}
+                                {% for client in data.clients %}
+                                <tr>
+                                    <td>
+                                        {% if loop.first %}
+                                        <strong>{{ commercial }}</strong>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ client.prenom }}</td>
+                                    <td>{{ client.nom }}</td>
+                                    <td>{{ client.marche }}</td>
+                                    <td>
+                                        <a href="tel:{{ client.contact }}" class="text-primary">
+                                            <i class="fas fa-phone"></i> {{ client.contact }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if loop.first %}
+                                            {{ stats[commercial].total_creances }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loop.first %}
+                                            {{ stats[commercial].total_montant|format_money }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loop.first %}
+                                            <span class="{% if stats[commercial].total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                                {{ stats[commercial].total_solde|format_money }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('liste_creances') }}">Créances</a>
+        </p>
+    </div>
+
+    <!-- AJOUT : JavaScript pour le toggle -->
+    <script>
+    function toggleClients(clientListId, button) {
+        const clientList = document.getElementById(clientListId);
+        if (!clientList) return;
+        
+        const isExpanded = clientList.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Masquer
+            clientList.classList.remove('expanded');
+            button.innerHTML = '<i class="fas fa-chevron-down"></i> Voir clients';
+            button.classList.remove('active');
+        } else {
+            // Afficher
+            clientList.classList.add('expanded');
+            button.innerHTML = '<i class="fas fa-chevron-up"></i> Cacher clients';
+            button.classList.add('active');
+            
+            // Fermer les autres listes dans la même carte (optionnel)
+            const card = button.closest('.commercial-card');
+            if (card) {
+                const otherButtons = card.querySelectorAll('.toggle-clients-btn');
+                otherButtons.forEach(btn => {
+                    if (btn !== button && btn.classList.contains('active')) {
+                        // Récupérer l'ID de l'autre liste depuis son onclick
+                        const match = btn.getAttribute('onclick')?.match(/'([^']+)'/);
+                        if (match && match[1]) {
+                            const otherListId = match[1];
+                            document.getElementById(otherListId)?.classList.remove('expanded');
+                            btn.innerHTML = '<i class="fas fa-chevron-down"></i> Voir clients';
+                            btn.classList.remove('active');
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page commerciaux chargée');
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!-- templates/erreur.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-message">
+        <h2>⚠️ Erreur</h2>
+        <div class="error-details">
+            <p>{{ message }}</p>
+        </div>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn">🏠 Retour à l'accueil</a>
+            <a href="{{ url_for('liste_creances') }}" class="btn">📋 Voir les créances</a>
+            <button onclick="history.back()" class="btn">↩️ Retour</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-message {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-width: 600px;
+    width: 100%;
+    border-left: 5px solid #e74c3c;
+}
+
+.error-message h2 {
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+.error-details {
+    background: #f9f9f9;
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    border: 1px solid #eee;
+}
+
+.error-details p {
+    color: #333;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+</style>
+{% endblock %}

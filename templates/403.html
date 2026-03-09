@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accès Refusé - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .error-container {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: 800;
+            color: #f39c12;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+        
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+        
+        .permission-info {
+            background: #fff8e1;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-width: 600px;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .role-badges {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .role-admin { background: #e74c3c; color: white; }
+        .role-commercial { background: #3498db; color: white; }
+        .role-user { background: #27ae60; color: white; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Erreur 403 - Accès Refusé</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="error-container">
+            <div class="error-code">403</div>
+            
+            <h1 class="error-title">Accès Refusé</h1>
+            
+            <p class="error-message">
+                Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+                Cette fonctionnalité est réservée à certains types d'utilisateurs.
+            </p>
+            
+            <div class="permission-info">
+                <h4><i class="fas fa-user-shield"></i> Votre rôle actuel :</h4>
+                <div class="role-badges">
+                    <span class="role-badge role-{{ current_user.role }}">
+                        {{ current_user.role|upper }}
+                    </span>
+                </div>
+                
+                <p style="margin-top: 15px; color: #666;">
+                    Vous êtes connecté en tant que <strong>{{ current_user.username }}</strong>
+                    avec le rôle <strong>{{ current_user.role }}</strong>.
+                </p>
+            </div>
+            
+            <div class="btn-group mt-30">
+                <a href="{{ url_for('accueil') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-home"></i> Retour à l'accueil
+                </a>
+                <a href="{{ url_for('liste_creances') }}" class="btn btn-success btn-large">
+                    <i class="fas fa-list"></i> Voir mes créances
+                </a>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('gestion_utilisateurs') }}" class="btn btn-warning btn-large">
+                    <i class="fas fa-cog"></i> Administration
+                </a>
+                {% endif %}
+            </div>
+            
+            <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px; max-width: 600px;">
+                <h3><i class="fas fa-info-circle"></i> Guide des permissions</h3>
+                <div class="role-badges">
+                    <span class="role-badge role-admin">ADMIN</span>
+                    <span class="role-badge role-commercial">COMMERCIAL</span>
+                    <span class="role-badge role-user">USER</span>
+                </div>
+                <p style="color: #7f8c8d; margin-top: 10px;">
+                    Les administrateurs ont un accès complet. Les commerciaux peuvent gérer leurs propres données.
+                    Les utilisateurs standards ont un accès en lecture seule.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('commerciaux') }}">Commerciaux</a>
+        </p>
+    </div>
+</body>
+</html>

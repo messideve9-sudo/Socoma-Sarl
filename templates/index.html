@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi des Créances - Accueil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .tab-header {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .tab-btn {
+            padding: 15px 25px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover {
+            background: #e9ecef;
+            color: #667eea;
+        }
+        
+        .tab-btn.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-content {
+            padding: 25px;
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .quick-action-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .quick-action-card:hover {
+            transform: translateY(-5px);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .quick-action-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .quick-action-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .quick-action-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid;
+        }
+        
+        .stat-card.primary { border-left-color: #3498db; }
+        .stat-card.success { border-left-color: #27ae60; }
+        .stat-card.warning { border-left-color: #f39c12; }
+        .stat-card.danger { border-left-color: #e74c3c; }
+        
+        .stat-title {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .stat-trend {
+            font-size: 13px;
+            color: #27ae60;
+        }
+        
+        .welcome-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .welcome-title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .admin-section {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 40px;
+        }
+        
+        .admin-section h3 {
+            color: #3498db;
+            margin-bottom: 20px;
+        }
+        
+        .commercial-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line" style="font-size: 2rem; color: #667eea;"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCOMA</h1>
+                <p style="color: #666; font-size: 0.9rem; margin-top: 5px;">
+                    <i class="fas fa-user"></i> {{ current_user.username }} 
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                    {% if current_user.commercial %}
+                    <span style="margin-left: 10px; background: #2c3e50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;">
+                        <i class="fas fa-user-tie"></i> {{ current_user.commercial }}
+                    </span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link active">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            
+            {% if current_user.role != 'commercial' %}
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            {% endif %}
+            
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-calendar-alt"></i> {{ now.strftime('%d/%m/%Y') }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="container">
+        <!-- Message de bienvenue -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="welcome-card">
+            <div class="welcome-icon">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <h1 class="welcome-title">Bienvenue, {{ current_user.username }} !</h1>
+            <p class="welcome-subtitle">Gérez efficacement vos créances clients</p>
+        </div>
+        
+        <!-- Onglets -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="showTab('creances')">
+                    <i class="fas fa-file-invoice-dollar"></i> Gestion Créances
+                </button>
+                <button class="tab-btn" onclick="showTab('dashboard')">
+                    <i class="fas fa-chart-bar"></i> Tableau de Bord
+                </button>
+                <button class="tab-btn" onclick="showTab('commerciaux')">
+                    <i class="fas fa-users"></i> Commerciaux
+                </button>
+            </div>
+            
+            <!-- Onglet 1: Créances -->
+            <div id="tab-creances" class="tab-content active">
+                <h2><i class="fas fa-file-invoice-dollar"></i> Gestion des Créances</h2>
+                
+                <!-- Actions rapides -->
+                <div class="quick-actions">
+                    <a href="{{ url_for('ajouter_creance') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <div class="quick-action-title">Ajouter Créance</div>
+                        <div class="quick-action-desc">Ajouter une nouvelle créance client</div>
+                    </a>
+                    
+                    <a href="{{ url_for('liste_creances') }}" class="quick-action-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <div class="quick-action-title">Liste des Créances</div>
+                        <div class="quick-action-desc">Voir toutes les créances en cours</div>
+                    </a>
+                    
+                    <a href="{{ url_for('recap_clients') }}" class="quick-action-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="quick-action-title">Récap Clients</div>
+                        <div class="quick-action-desc">Récapitulatif par client</div>
+                    </a>
+                    
+                    <a href="{{ url_for('import_creances') if current_user.role == 'admin' else '#' }}" 
+                       class="quick-action-card" 
+                       style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"
+                       {% if current_user.role != 'admin' %}onclick="alert('Accès réservé aux administrateurs')"{% endif %}>
+                        <div class="quick-action-icon">
+                            <i class="fas fa-file-import"></i>
+                        </div>
+                        <div class="quick-action-title">Import Excel</div>
+                        <div class="quick-action-desc">Importer des créances depuis Excel</div>
+                    </a>
+                </div>
+                
+                <!-- Statistiques rapides -->
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-title">Total Créances</div>
+                        <div class="stat-value">{{ total_creances|format_money }}</div>
+                    </div>
+                    
+                    <div class="stat-card warning">
+                        <div class="stat-title">À Solder</div>
+                        <div class="stat-value">{{ montant_a_solder|format_money }}</div>
+                    </div>
+                    
+                    <div class="stat-card danger">
+                        <div class="stat-title">En Retard</div>
+                        <div class="stat-value">{{ montant_retard|format_money }}</div>
+                        <div class="stat-trend">{{ tpar|round(2) }}% du total</div>
+                    </div>
+                    
+                    <div class="stat-card success">
+                        <div class="stat-title">Soldé</div>
+                        <div class="stat-value">{{ (total_creances - montant_a_solder)|format_money }}</div>
+                        <div class="stat-trend">{{ (100 - tpar)|round(2) }}% du total</div>
+                    </div>
+                </div>
+                
+                <!-- Créances récentes -->
+                <h3><i class="fas fa-history"></i> Créances Récentes</h3>
+                {% if creances_recentes %}
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commercial</th>
+                                <th>Client</th>
+                                <th>Marché</th>
+                                <th>Montant</th>
+                                <th>Solde</th>
+                                <th>Date Échéance</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for creance in creances_recentes %}
+                            <tr>
+                                <td>{{ creance.commercial }}</td>
+                                <td>{{ creance.client }}</td>
+                                <td>{{ creance.marche }}</td>
+                                <td>{{ creance.montant|format_money }}</td>
+                                <td>{{ creance.solde|format_money }}</td>
+                                <td>{{ creance.date_echeance|format_date }}</td>
+                                <td>
+                                    <span class="statut statut-{{ creance.statut|lower|replace(' ', '-')|replace('à', 'a') }}">
+                                        {{ creance.statut }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{{ url_for('liste_creances') }}" class="btn btn-primary">
+                        <i class="fas fa-list"></i> Voir Toutes les Créances
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucune créance enregistrée
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Onglet 2: Tableau de bord -->
+            <div id="tab-dashboard" class="tab-content">
+                <h2><i class="fas fa-chart-bar"></i> Tableau de Bord</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="stat-title">Performance Globale</div>
+                        <div class="stat-value">{{ (100 - tpar)|round(2) }}%</div>
+                        <div class="stat-trend">Taux de réussite</div>
+                    </div>
+                    
+                    <div class="stat-card success">
+                        <div class="stat-title">Clients Actifs</div>
+                        {% set unique_clients = [] %}
+                        {% for commercial in COMMERCIAUX_DATA %}
+                            {% for client in COMMERCIAUX_DATA[commercial].clients %}
+                                {% if client.prenom ~ client.nom not in unique_clients %}
+                                    {% set _ = unique_clients.append(client.prenom ~ client.nom) %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        <div class="stat-value">{{ unique_clients|length }}</div>
+                        <div class="stat-trend">Clients enregistrés</div>
+                    </div>
+                    
+                    <div class="stat-card warning">
+                        <div class="stat-title">Commerciaux</div>
+                        <div class="stat-value">{{ COMMERCIAUX_DATA|length }}</div>
+                        <div class="stat-trend">Équipe commerciale</div>
+                    </div>
+                    
+                    <div class="stat-card danger">
+                        <div class="stat-title">À Surveiller</div>
+                        <div class="stat-value">{{ creances_retard|length }}</div>
+                        <div class="stat-trend">Créances en retard</div>
+                    </div>
+                </div>
+                
+                <!-- Performance par commercial -->
+                <h3><i class="fas fa-user-tie"></i> Performance par Commercial</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commercial</th>
+                                <th>Total Créances</th>
+                                <th>À Solder</th>
+                                <th>En Retard</th>
+                                <th>TPAR</th>
+                                <th>Clients</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commercial, stats in stats_commerciaux.items() %}
+                            <tr>
+                                <td><strong>{{ commercial }}</strong></td>
+                                <td>{{ stats.total|format_money }}</td>
+                                <td>{{ stats.solde|format_money }}</td>
+                                <td>{{ stats.retard|format_money }}</td>
+                                <td>
+                                    {% if stats.total > 0 %}
+                                        {{ ((stats.retard / stats.total) * 100)|round(2) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                                <td>{{ stats.count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Top créances en retard -->
+                {% if top_retard %}
+                <h3 style="margin-top: 30px;"><i class="fas fa-exclamation-triangle"></i> Top 5 Créances en Retard</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commercial</th>
+                                <th>Client</th>
+                                <th>Montant</th>
+                                <th>Jours Retard</th>
+                                <th>Date Échéance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for creance in top_retard %}
+                            <tr>
+                                <td>{{ creance.commercial }}</td>
+                                <td>{{ creance.client }}</td>
+                                <td>{{ creance.solde|format_money }}</td>
+                                <td>
+                                    <span class="badge badge-danger">{{ creance.jours_retard }} jours</span>
+                                </td>
+                                <td>{{ creance.date_echeance|format_date }}</td>
+                                <td>
+                                    <a href="{{ url_for('modifier_creance', id=creance.id) }}" class="btn btn-small btn-warning">
+                                        <i class="fas fa-edit"></i> Modifier
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Onglet 3: Commerciaux -->
+            <div id="tab-commerciaux" class="tab-content">
+                <h2><i class="fas fa-users"></i> Gestion des Commerciaux</h2>
+                
+                <!-- Liste des commerciaux -->
+                <div class="quick-actions">
+                    {% for commercial in COMMERCIAUX_DATA.keys() %}
+                    <div class="quick-action-card" onclick="showCommercial('{{ commercial }}')" 
+                         style="background: linear-gradient(135deg, 
+                         {% if loop.index % 3 == 1 %}#4facfe 0%, #00f2fe 100%
+                         {% elif loop.index % 3 == 2 %}#43e97b 0%, #38f9d7 100%
+                         {% else %}#fa709a 0%, #fee140 100%{% endif %});">
+                        <div class="quick-action-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="quick-action-title">{{ commercial }}</div>
+                        <div class="quick-action-desc">
+                            {{ COMMERCIAUX_DATA[commercial].clients|length }} clients
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Détails du commercial -->
+                <div id="commercial-details">
+                    <div style="text-align: center; padding: 40px; color: #95a5a6;">
+                        <i class="fas fa-user-tie" style="font-size: 3rem;"></i>
+                        <h3>Sélectionnez un commercial pour voir les détails</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section admin -->
+        {% if current_user.role == 'admin' %}
+        <div class="admin-section">
+            <h3><i class="fas fa-shield-alt"></i> Administration</h3>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <a href="{{ url_for('gestion_utilisateurs') }}" class="btn btn-warning">
+                    <i class="fas fa-users-cog"></i> Gestion Utilisateurs
+                </a>
+                <a href="{{ url_for('admin_reset_creances') }}" class="btn btn-danger">
+                    <i class="fas fa-redo"></i> Réinitialiser Créances
+                </a>
+                <a href="{{ url_for('import_creances') }}" class="btn btn-success">
+                    <i class="fas fa-file-import"></i> Importer Excel
+                </a>
+                <a href="{{ url_for('export_excel') }}" class="btn btn-info">
+                    <i class="fas fa-file-export"></i> Exporter Excel
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCOMA &copy; {{ now.year }}</p>
+        <p style="font-size: 12px; color: #95a5a6; margin-top: 5px;">
+            <i class="fas fa-shield-alt"></i> Système sécurisé | 
+            <i class="fas fa-sync-alt"></i> Dernière mise à jour: {{ now.strftime('%H:%M') }}
+        </p>
+    </div>
+
+    <script>
+        // Gestion des onglets
+        function showTab(tabName) {
+            // Masquer tous les onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Désactiver tous les boutons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Activer l'onglet sélectionné
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Activer le bouton correspondant
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.textContent.includes(tabName === 'creances' ? 'Gestion Créances' : 
+                                             tabName === 'dashboard' ? 'Tableau de Bord' : 'Commerciaux')) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Sauvegarder dans l'URL
+            history.pushState(null, null, '#' + tabName);
+        }
+        
+        // Afficher les détails d'un commercial
+        function showCommercial(commercialName) {
+            const commercial = {{ COMMERCIAUX_DATA|tojson }};
+            const data = commercial[commercialName];
+            const container = document.getElementById('commercial-details');
+            
+            if (!data) {
+                container.innerHTML = '<div class="alert alert-warning">Commercial non trouvé</div>';
+                return;
+            }
+            
+            let html = `
+                <div class="commercial-details">
+                    <h3><i class="fas fa-user-tie"></i> ${commercialName}</h3>
+                    <p><strong>${data.clients.length} clients</strong></p>
+                    
+                    <h4><i class="fas fa-address-book"></i> Liste des Clients</h4>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Prénom</th>
+                                    <th>Nom</th>
+                                    <th>Marché</th>
+                                    <th>Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            data.clients.forEach(client => {
+                html += `
+                    <tr>
+                        <td>${client.prenom}</td>
+                        <td>${client.nom}</td>
+                        <td>${client.marche}</td>
+                        <td>${client.contact}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Au chargement, vérifier l'URL pour l'onglet
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash && ['creances', 'dashboard', 'commerciaux'].includes(hash)) {
+                showTab(hash);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Créances - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+            border-left: 4px solid #3498db;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #2c3e50;
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .actions {
+            position: sticky;
+            top: 70px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+        
+        .creance-row {
+            transition: all 0.3s ease;
+        }
+        
+        .creance-row:hover {
+            background: #f8f9fa !important;
+            transform: translateY(-2px);
+        }
+        
+        .solde-positive {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+        
+        .solde-negative {
+            color: #27ae60;
+            font-weight: 700;
+        }
+        
+        .statut-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .statut-a-relancer { background: #ffeaa7; color: #d63031; }
+        .statut-a-surveiller { background: #a29bfe; color: #2d3436; }
+        .statut-aujourd-hui { background: #81ecec; color: #0984e3; }
+        .statut-paye { background: #55efc4; color: #00b894; }
+        .statut-en-retard { background: #fd79a8; color: #e84393; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Liste des Créances</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link active">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- Titre et boutons d'action -->
+            <div class="d-flex justify-between align-center mb-30">
+                <h2><i class="fas fa-file-invoice-dollar"></i> Liste des Créances</h2>
+                <div class="btn-group">
+                    <a href="{{ url_for('ajouter_creance') }}" class="btn btn-success">
+                        <i class="fas fa-plus-circle"></i> Nouvelle Créance
+                    </a>
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-info">
+                        <i class="fas fa-file-excel"></i> Exporter Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiques rapides -->
+            <div class="stats-bar">
+                {% set total_creances = creances|sum(attribute='montant') %}
+                {% set total_versement = creances|sum(attribute='versement') %}
+                {% set total_solde = creances|sum(attribute='solde') %}
+                {% set creances_en_cours = creances|selectattr('solde', 'gt', 0)|list|length %}
+                {% set creances_retard = creances|selectattr('situation_paiement', 'equalto', 'EN RETARD')|list|length %}
+                
+                <div class="stat-item">
+                    <div class="stat-label">Total Créances</div>
+                    <div class="stat-value">{{ total_creances|format_money }}</div>
+                    <div style="font-size: 14px; color: #7f8c8d;">{{ creances|length }} créance(s)</div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-label">Déjà Soldé</div>
+                    <div class="stat-value">{{ total_versement|format_money }}</div>
+                    <div style="font-size: 14px; color: #7f8c8d;">
+                        {% if total_creances > 0 %}
+                            {{ ((total_versement / total_creances) * 100)|round(2) }}% du total
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-label">Solde Restant</div>
+                    <div class="stat-value {% if total_solde > 0 %}solde-positive{% else %}solde-negative{% endif %}">
+                        {{ total_solde|format_money }}
+                    </div>
+                    <div style="font-size: 14px; color: #7f8c8d;">
+                        {{ creances_en_cours }} créance(s) en cours
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-label">En Retard</div>
+                    <div class="stat-value {% if creances_retard > 0 %}solde-positive{% endif %}">
+                        {{ creances_retard }}
+                    </div>
+                    <div style="font-size: 14px; color: #7f8c8d;">
+                        Créance(s) nécessitant suivi urgent
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="filters">
+                <form method="GET" action="{{ url_for('liste_creances') }}">
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="commercial">Commercial</label>
+                            <select id="commercial" name="commercial" class="form-control">
+                                <option value="">Tous les commerciaux</option>
+                                {% for commercial in commerciaux %}
+                                <option value="{{ commercial }}" {% if request.args.get('commercial') == commercial %}selected{% endif %}>
+                                    {{ commercial }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="statut">Statut</label>
+                            <select id="statut" name="statut" class="form-control">
+                                <option value="">Tous les statuts</option>
+                                <option value="À RELANCER" {% if request.args.get('statut') == 'À RELANCER' %}selected{% endif %}>À Relancer</option>
+                                <option value="À SURVEILLER" {% if request.args.get('statut') == 'À SURVEILLER' %}selected{% endif %}>À Surveiller</option>
+                                <option value="AUJOURD'HUI" {% if request.args.get('statut') == "AUJOURD'HUI" %}selected{% endif %}>Aujourd'hui</option>
+                                <option value="EN RETARD" {% if request.args.get('statut') == 'EN RETARD' %}selected{% endif %}>En Retard</option>
+                                <option value="PAYE" {% if request.args.get('statut') == 'PAYE' %}selected{% endif %}>Payé</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="client">Client</label>
+                            <input type="text" id="client" name="client" class="form-control" 
+                                   placeholder="Nom du client" value="{{ request.args.get('client', '') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-between align-center">
+                        <div></div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Appliquer les filtres
+                            </button>
+                            <a href="{{ url_for('liste_creances') }}" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="actions">
+                <div class="btn-group">
+                    <a href="{{ url_for('ajouter_creance') }}" class="btn btn-success btn-small">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </a>
+                    <a href="{{ url_for('recap_clients') }}" class="btn btn-info btn-small">
+                        <i class="fas fa-users"></i> Vue Clients
+                    </a>
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-warning btn-small">
+                        <i class="fas fa-file-excel"></i> Exporter
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('import_creances') }}" class="btn btn-secondary btn-small">
+                        <i class="fas fa-file-import"></i> Importer
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tableau des créances -->
+            {% if creances %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Commercial</th>
+                            <th>Montant</th>
+                            <th>Versement</th>
+                            <th>Solde</th>
+                            <th>Date Fact.</th>
+                            <th>Échéance</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for creance in creances %}
+                        <tr class="creance-row {% if loop.index % 2 == 0 %}even{% endif %}">
+                            <td>{{ creance.id }}</td>
+                            <td>
+                                <strong>{{ creance.client }}</strong>
+                                {% if creance.marche %}
+                                <br><small style="color: #7f8c8d;">{{ creance.marche }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ creance.commercial }}</td>
+                            <td>{{ creance.montant|format_money }}</td>
+                            <td>{{ creance.versement|format_money }}</td>
+                            <td class="{% if creance.solde > 0 %}solde-positive{% else %}solde-negative{% endif %}">
+                                {{ creance.solde|format_money }}
+                            </td>
+                            <td>{{ creance.date_facturation|format_date }}</td>
+                            <td>
+                                {% if creance.date_echeance %}
+                                    {{ creance.date_echeance|format_date }}
+                                    {% if creance.jours_retard and creance.jours_retard > 0 %}
+                                    <br><small class="text-danger">{{ creance.jours_retard }} jours retard</small>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="statut-badge statut-{{ creance.statut|lower|replace(' ', '-')|replace('à', 'a')|replace("'", '') }}">
+                                    {{ creance.statut }}
+                                </span>
+                            </td>
+                            <td class="actions">
+                                <div class="btn-group">
+                                    <a href="{{ url_for('modifier_creance', id=creance.id) }}" class="btn btn-small btn-warning" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if current_user.role == 'admin' %}
+                                    <a href="{{ url_for('supprimer_creance', id=creance.id) }}" 
+                                       class="btn btn-small btn-danger" 
+                                       title="Supprimer"
+                                       onclick="return confirm('Supprimer cette créance ? Cette action est irréversible.')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Résumé -->
+            <div class="card mt-30">
+                <h3><i class="fas fa-chart-pie"></i> Résumé par Statut</h3>
+                <div class="form-row">
+                    {% set statuts = ['À RELANCER', 'À SURVEILLER', "AUJOURD'HUI", 'EN RETARD', 'PAYE'] %}
+                    {% for statut in statuts %}
+                    {% set creances_statut = creances|selectattr('statut', 'equalto', statut)|list %}
+                    {% if creances_statut %}
+                    <div class="stat-item">
+                        <div class="stat-label">{{ statut }}</div>
+                        <div class="stat-value">{{ creances_statut|length }}</div>
+                        <div style="font-size: 14px; color: #7f8c8d;">
+                            {{ (creances_statut|sum(attribute='solde'))|format_money }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-file-invoice-dollar" style="font-size: 4rem; color: #95a5a6; margin-bottom: 20px;"></i>
+                <h3>Aucune créance trouvée</h3>
+                <p>Commencez par ajouter votre première créance.</p>
+                <a href="{{ url_for('ajouter_creance') }}" class="btn btn-success mt-20">
+                    <i class="fas fa-plus-circle"></i> Ajouter une créance
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('commerciaux') }}">Commerciaux</a>
+        </p>
+    </div>
+
+    <script>
+        // Tri des colonnes
+        function sortTable(columnIndex) {
+            const table = document.querySelector('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            const isAscending = table.dataset.sortColumn === columnIndex.toString() 
+                ? table.dataset.sortOrder === 'desc'
+                : true;
+            
+            rows.sort((a, b) => {
+                const aValue = a.cells[columnIndex].textContent.trim();
+                const bValue = b.cells[columnIndex].textContent.trim();
+                
+                // Essayer de convertir en nombre
+                const aNum = parseFloat(aValue.replace(/[^\d.-]/g, ''));
+                const bNum = parseFloat(bValue.replace(/[^\d.-]/g, ''));
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return isAscending ? aNum - bNum : bNum - aNum;
+                }
+                
+                // Sinon tri alphabétique
+                return isAscending 
+                    ? aValue.localeCompare(bValue, 'fr')
+                    : bValue.localeCompare(aValue, 'fr');
+            });
+            
+            // Réorganiser les lignes
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Mettre à jour les indicateurs de tri
+            table.dataset.sortColumn = columnIndex;
+            table.dataset.sortOrder = isAscending ? 'asc' : 'desc';
+        }
+        
+        // Ajouter des événements de clic aux en-têtes
+        document.addEventListener('DOMContentLoaded', function() {
+            const headers = document.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => sortTable(index));
+            });
+            
+            // Afficher le nombre de résultats
+            const count = {{ creances|length }};
+            const resultsElement = document.createElement('div');
+            resultsElement.className = 'text-muted mt-20';
+            resultsElement.innerHTML = `<i class="fas fa-info-circle"></i> ${count} créance(s) trouvée(s)`;
+            
+            const table = document.querySelector('.table-responsive');
+            if (table && count > 0) {
+                table.after(resultsElement);
+            }
+        });
+    </script>
+</body>
+</html>

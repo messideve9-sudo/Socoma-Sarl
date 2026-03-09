@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter Créance - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .client-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .client-section h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .montant-section {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+        
+        .montant-calc {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        
+        .montant-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        
+        .montant-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .montant-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .auto-calculation {
+            background: #e8f4fc;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #3498db;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+        
+        .client-info {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .date-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .date-info {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Ajouter une nouvelle créance</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <div class="d-flex justify-between align-center mb-30">
+                <h2><i class="fas fa-plus-circle"></i> Ajouter une Créance</h2>
+                <div class="btn-group">
+                    <a href="{{ url_for('liste_creances') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('ajouter_creance') }}" id="creanceForm" onsubmit="return validerFormulaire()">
+                <!-- Section Commercial -->
+                <div class="client-section">
+                    <h4><i class="fas fa-user-tie"></i> 1. Sélection du Commercial</h4>
+                    <div class="form-group">
+                        <label for="commercial" class="required">Commercial</label>
+                        <select id="commercial" name="commercial" class="form-control" required onchange="chargerClients()">
+                            <option value="">Sélectionnez un commercial</option>
+                            <option value="YAYA CAMARA">YAYA CAMARA</option>
+                            <option value="BADRA KEITA">BADRA KEITA</option>
+                            <option value="ISSA DIAKITE">ISSA DIAKITE</option>
+                            <option value="DIDIER DEMBELE">DIDIER DEMBELE</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Client -->
+                <div class="client-section">
+                    <h4><i class="fas fa-users"></i> 2. Informations Client</h4>
+                    
+                    <div class="form-group">
+                        <label>Type de client</label>
+                        <div class="form-check">
+                            <input type="radio" id="client_existant_radio" name="client_type" value="existant" checked class="form-check-input" onclick="gererTypeClient()">
+                            <label for="client_existant_radio" class="form-check-label">Client existant</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" id="client_nouveau_radio" name="client_type" value="nouveau" class="form-check-input" onclick="gererTypeClient()">
+                            <label for="client_nouveau_radio" class="form-check-label">Nouveau client</label>
+                        </div>
+                    </div>
+
+                    <!-- Client existant -->
+                    <div id="client_existant">
+                        <div class="form-group">
+                            <label for="client_select" class="required">Sélectionner un client</label>
+                            <select id="client_select" name="client_select" class="form-control" onchange="mettreAJourMarche()">
+                                <option value="">Choisissez un commercial d'abord</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="marche">Marché du client</label>
+                            <input type="text" id="marche" name="marche" class="form-control" readonly>
+                        </div>
+                        
+                        <div class="client-info">
+                            <i class="fas fa-info-circle"></i> Le client sélectionné sera automatiquement associé au marché correspondant
+                        </div>
+                    </div>
+
+                    <!-- Nouveau client -->
+                    <div id="client_nouveau" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nouveau_prenom" class="required">Prénom</label>
+                                <input type="text" id="nouveau_prenom" name="nouveau_prenom" class="form-control" placeholder="Prénom du client">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="nouveau_nom" class="required">Nom</label>
+                                <input type="text" id="nouveau_nom" name="nouveau_nom" class="form-control" placeholder="Nom du client">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nouveau_marche" class="required">Marché</label>
+                            <input type="text" id="nouveau_marche" name="nouveau_marche" class="form-control" placeholder="Ex: BANCON FARADA">
+                        </div>
+                        
+                        <div class="client-info">
+                            <i class="fas fa-lightbulb"></i> Pour ajouter un nouveau client, remplissez ses informations ci-dessus
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Montants -->
+                <div class="montant-section">
+                    <h4><i class="fas fa-money-bill-wave"></i> 3. Informations Financières</h4>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="montant" class="required">Montant de la créance (FCFA)</label>
+                            <input type="number" id="montant" name="montant" class="form-control" 
+                                   min="0" step="50" required data-format="cfa" data-round="50" oninput="calculerSolde()">
+                            <div class="auto-calculation">
+                                <i class="fas fa-calculator"></i> Arrondi automatique aux 50 FCFA les plus proches
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="versement">Versement effectué (FCFA)</label>
+                            <input type="number" id="versement" name="versement" class="form-control" 
+                                   min="0" step="50" value="0" data-format="cfa" data-round="50" oninput="calculerSolde()">
+                        </div>
+                    </div>
+                    
+                    <div class="montant-calc">
+                        <div class="montant-item">
+                            <div class="montant-label">Montant Créance</div>
+                            <div class="montant-value" id="montant_affichage">0 FCFA</div>
+                        </div>
+                        
+                        <div class="montant-item">
+                            <div class="montant-label">Versement</div>
+                            <div class="montant-value" id="versement_affichage">0 FCFA</div>
+                        </div>
+                        
+                        <div class="montant-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <div class="montant-label">Solde à payer</div>
+                            <div class="montant-value" id="solde_calcule">0 FCFA</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Dates -->
+                <div class="client-section">
+                    <h4><i class="fas fa-calendar-alt"></i> 4. Dates</h4>
+                    
+                    <div class="date-section">
+                        <div class="form-group">
+                            <label for="date_facturation" class="required">Date de facturation</label>
+                            <input type="date" id="date_facturation" name="date_facturation" class="form-control" 
+                                   required onchange="calculerDateEcheance()">
+                            <div class="date-info">Date à laquelle la créance a été émise</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="date_echeance">Date d'échéance (calcul automatique)</label>
+                            <input type="date" id="date_echeance" name="date_echeance" class="form-control" readonly>
+                            <div class="date-info">Calculée automatiquement : Date facturation + 10 jours</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Commentaires -->
+                <div class="client-section">
+                    <h4><i class="fas fa-comment"></i> 5. Commentaires (optionnel)</h4>
+                    
+                    <div class="form-group">
+                        <label for="commentaires">Informations complémentaires</label>
+                        <textarea id="commentaires" name="commentaires" class="form-control" 
+                                  rows="4" placeholder="Notes, observations, détails sur la créance..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="d-flex justify-between align-center mt-40">
+                    <div>
+                        <a href="{{ url_for('liste_creances') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="reset" class="btn btn-warning">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </button>
+                        <button type="submit" class="btn btn-success btn-large">
+                            <i class="fas fa-save"></i> Enregistrer la Créance
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('commerciaux') }}">Commerciaux</a>
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Données des commerciaux pour JavaScript
+        const commerciauxData = {
+            'YAYA CAMARA': [
+                {prenom: 'FANTA', nom: 'DIARRA', marche: 'BAGADADJI', contact: '76 42 79 10'},
+                {prenom: 'BROULAYE', nom: 'DIARRA', marche: 'BANCON FARADA', contact: '92 69 61 41'},
+                {prenom: 'SOULEYMANE', nom: 'TRAORE', marche: 'BANCONI FLABOUGOU', contact: '76 21 48 06'},
+                {prenom: 'MAHAMADOU', nom: 'DIAMOUTENE', marche: 'BOULKASSOUMBOUGOU', contact: '79 26 07 75'},
+                {prenom: 'MOUSSA', nom: 'CISSE', marche: 'DJALAKORODJI', contact: '72 61 29 81'},
+                {prenom: 'YAYA', nom: 'SOUKOULE', marche: 'DJELIBOUGOU', contact: '76 21 74 82'},
+                {prenom: 'AMINATA', nom: 'BALLO', marche: 'FADJIGUILA', contact: '77 71 70 06'},
+                {prenom: 'ABDOULAYE', nom: 'TRAORE', marche: 'KONATEBOUGOU', contact: '74 48 79 03'},
+                {prenom: 'FAH', nom: 'COULIBALY', marche: 'MARSEILLE', contact: '83 37 37 28'},
+                {prenom: 'DJIBRIL', nom: 'SIDIBE', marche: 'MEDINE', contact: '76 15 93 15'},
+                {prenom: 'SALIF', nom: 'DJOURTE', marche: 'MEDINE', contact: '76 19 26 65'},
+                {prenom: 'BA OUMAR', nom: 'SOUMOUNOU', marche: 'MEDINE', contact: '76 08 97 21'},
+                {prenom: 'ISSA', nom: 'DOLO', marche: 'MORIBABOUGOU', contact: '66 69 66 81'},
+                {prenom: 'FAMOUSSA', nom: 'DIAWARA', marche: 'NAFADJI', contact: '76 24 05 56'},
+                {prenom: 'BASSIDIKY', nom: 'FAMATA', marche: 'NGOLONINA', contact: '76 41 99 39'},
+                {prenom: 'MAMA', nom: 'TRAORE', marche: 'TITIBOUGOU', contact: '65 38 80 87'}
+            ],
+            'BADRA KEITA': [
+                {prenom: 'ALOU', nom: 'SIDIBE', marche: 'DIBIDANI', contact: '76 17 43 43'},
+                {prenom: 'DJELIKA', nom: 'KEITA', marche: 'DJICORONI PARA 1', contact: '66 87 40 20'},
+                {prenom: 'OUMOU', nom: 'SIDIBE', marche: 'DJICORONI PARA 2', contact: '76 06 11 40'},
+                {prenom: 'ABDOUL', nom: 'TOURE', marche: 'HAMDALAYE', contact: '75 33 89 43'},
+                {prenom: 'ISSA', nom: 'DIALLO', marche: 'HAMDALAYE', contact: '76 77 03 04'},
+                {prenom: 'MOUSSA', nom: 'TRAORE', marche: 'KANADJIGUILA', contact: '67 82 64 84'},
+                {prenom: 'IDRISSA', nom: 'KEITA', marche: 'KANADJIGUILA', contact: '66 83 10 40'},
+                {prenom: 'DJENABA', nom: 'DIARRA', marche: 'KATI CENTRAL', contact: '78 65 89 12'},
+                {prenom: 'SOUMAILA', nom: 'THIERO', marche: 'LAFIA BOUGOU 2 TRM', contact: '77 29 38 08'},
+                {prenom: 'BEDY', nom: 'KEITA', marche: 'LAFIA BOUGOU TALIKO', contact: '75 28 24 92'},
+                {prenom: 'MAH', nom: 'KONATE', marche: 'LAFIABOUGOU 1', contact: '74 05 15 45'},
+                {prenom: 'AROUNA DJIBRIL', nom: 'SIDIBE', marche: 'LAFIABOUGOU 2', contact: '74 67 72 13'},
+                {prenom: 'GOURO', nom: 'MAIGA', marche: 'NTOMIKOROBOUGOU', contact: '95 95 35 35'},
+                {prenom: 'AMIDOU', nom: 'KANTE', marche: 'SEBENICORO', contact: '76 15 36 71'},
+                {prenom: 'FATOUMATA', nom: 'BAGAYOKO', marche: 'WOLOFOBOUGOU', contact: '76 30 04 47'}
+            ],
+            'ISSA DIAKITE': [
+                {prenom: 'KADER', nom: 'TRAORE', marche: 'BACODJICORO ACI', contact: '65 14 66 80'},
+                {prenom: 'CHAKA', nom: 'DOUMBIA', marche: 'BACODJICORONI', contact: '74 10 62 67'},
+                {prenom: 'VIEUX', nom: 'DIABATE', marche: 'BADALABOUGOU', contact: '66 82 48 30'},
+                {prenom: 'AMIDOU', nom: 'KODIO', marche: 'DAOUDABOUGOU', contact: '76 38 66 41'},
+                {prenom: 'THIEMOKO', nom: 'SIDIBE', marche: 'GARANTIBOUGOU', contact: '76 62 23 39'},
+                {prenom: 'LASSINE', nom: 'TRAORE', marche: 'GOUANA', contact: '65 52 85 08'},
+                {prenom: 'MARIAM', nom: 'SANOGO', marche: 'KABALA', contact: '82 92 32 94'},
+                {prenom: 'MOUSSA', nom: 'KONE', marche: 'KALABAN ACI', contact: '70 88 61 49'},
+                {prenom: 'ABOU', nom: 'SAMAKE', marche: 'KALABAN ECHANGEUR', contact: '76 31 72 32'},
+                {prenom: 'ADAMA', nom: 'DIARRA', marche: 'KALABAN ECHANGEUR', contact: '70 93 37 25'},
+                {prenom: 'AMIDOU', nom: 'COULIBALY', marche: 'KALABAN KLOUBLENI', contact: '76 29 57 79'},
+                {prenom: 'AMINATA', nom: 'TRAORE', marche: 'KALABAN KORO', contact: '74 02 18 08'},
+                {prenom: 'SEYDOU', nom: 'DOUGNON', marche: 'KALABAN KOULOUBA', contact: '79 15 88 11'},
+                {prenom: 'MOUSSA', nom: 'GACKOU', marche: 'KALABAN PRINCIPAL', contact: '79 06 13 22'},
+                {prenom: 'NOUHOUM', nom: 'TRAORE', marche: 'NIAMAKORO KOURANI', contact: '66 41 55 31'},
+                {prenom: 'KAROUNGA', nom: 'DIARRA', marche: 'OLYMPE', contact: '78 11 92 59'},
+                {prenom: 'MOHAMED', nom: 'TRAORE', marche: 'TOROKOROBOUGOU', contact: '76 18 42 12'},
+                {prenom: 'FATOUMATA', nom: 'DIAKITE', marche: 'SABALIBOUGOU', contact: '83 91 54 47'}
+            ],
+            'DIDIER DEMBELE': [
+                {prenom: 'SOULEYMANE', nom: 'GUINDO', marche: 'ALAMNA SOUGOU', contact: '70 51 95 77'},
+                {prenom: 'FATOUMATA', nom: 'CISSE', marche: 'ATT BOUGOU', contact: '60 16 20 83'},
+                {prenom: 'FAMOUGOURY', nom: 'SAMAKE', marche: 'BANANKABOUGOU', contact: '76 02 84 51'},
+                {prenom: 'BINTOU', nom: 'DIALLO', marche: 'MAGNAMBOUGOU', contact: '74 45 25 66'},
+                {prenom: 'ADAMA', nom: 'DIARRA', marche: 'MOUSSABOUGOU', contact: '78 20 10 20'},
+                {prenom: 'HAMA', nom: 'NANTOUME', marche: 'NIAMAKORO CHEZ BOUGOUNI', contact: '76 76 99 61'},
+                {prenom: 'MOUMINE', nom: 'DIAKITE', marche: 'NIAMAKORO SOUGOUKORO', contact: '76 44 19 38'},
+                {prenom: 'ISAC', nom: 'BERTHE', marche: 'NIAMAKORO SOUGOUKOURA', contact: '72 55 60 60'},
+                {prenom: 'TOGOLAIS', nom: 'YAO', marche: 'NIAMANA', contact: '70 89 66 17'},
+                {prenom: 'MOUSSA', nom: 'KEITA', marche: 'SABALIBOUGOU KOURANI', contact: '69 75 55 13'},
+                {prenom: 'DRAMANE', nom: 'OUATARRA', marche: 'SENOU', contact: '79 31 67 76'},
+                {prenom: 'ABDOULAYE', nom: 'DICKO', marche: 'SIRAKORO', contact: '76 44 42 87'},
+                {prenom: 'HAMADOUNE', nom: 'BAH', marche: 'SOGONIKO', contact: '72 01 12 73'},
+                {prenom: 'DJIBRYL', nom: 'SYLLA', marche: 'SOKORODJI', contact: '78 50 55 66'},
+                {prenom: 'BAMOULAYE', nom: 'TRAORE', marche: 'YIRIMADJO', contact: '76 19 45 67'},
+                {prenom: 'ISSA', nom: 'SAGARA', marche: 'ZERNI', contact: '76 25 18 81'}
+            ]
+        };
+
+        // Fonctions JavaScript
+        function formatCFA(number) {
+            return new Intl.NumberFormat('fr-FR').format(Math.round(number)) + ' FCFA';
+        }
+
+        function chargerClients() {
+            const commercial = document.getElementById('commercial').value;
+            const clientSelect = document.getElementById('client_select');
+            
+            clientSelect.innerHTML = '<option value="">Sélectionner un client</option>';
+            
+            if (commercial && commerciauxData[commercial]) {
+                commerciauxData[commercial].forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = `${client.prenom} ${client.nom}`;
+                    option.textContent = `${client.prenom} ${client.nom} - ${client.marche}`;
+                    option.dataset.marche = client.marche;
+                    option.dataset.contact = client.contact;
+                    clientSelect.appendChild(option);
+                });
+            }
+        }
+
+        function mettreAJourMarche() {
+            const clientSelect = document.getElementById('client_select');
+            const marcheInput = document.getElementById('marche');
+            const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.dataset.marche) {
+                marcheInput.value = selectedOption.dataset.marche;
+            }
+        }
+
+        function gererTypeClient() {
+            const clientExistantRadio = document.getElementById('client_existant_radio');
+            const clientExistantDiv = document.getElementById('client_existant');
+            const clientNouveauDiv = document.getElementById('client_nouveau');
+            
+            if (clientExistantRadio.checked) {
+                clientExistantDiv.style.display = 'block';
+                clientNouveauDiv.style.display = 'none';
+            } else {
+                clientExistantDiv.style.display = 'none';
+                clientNouveauDiv.style.display = 'block';
+            }
+        }
+
+        function calculerSolde() {
+            const montant = parseFloat(document.getElementById('montant').value) || 0;
+            const versement = parseFloat(document.getElementById('versement').value) || 0;
+            const solde = montant - versement;
+            
+            document.getElementById('montant_affichage').textContent = formatCFA(montant);
+            document.getElementById('versement_affichage').textContent = formatCFA(versement);
+            document.getElementById('solde_calcule').textContent = formatCFA(solde);
+        }
+
+        function calculerDateEcheance() {
+            const dateFacturation = document.getElementById('date_facturation').value;
+            const dateEcheance = document.getElementById('date_echeance');
+            
+            if (dateFacturation) {
+                const date = new Date(dateFacturation);
+                date.setDate(date.getDate() + 10);
+                dateEcheance.value = date.toISOString().split('T')[0];
+            }
+        }
+
+        function validerFormulaire() {
+            const commercial = document.getElementById('commercial').value;
+            const montant = document.getElementById('montant').value;
+            const dateFacturation = document.getElementById('date_facturation').value;
+            
+            if (!commercial || !montant || !dateFacturation) {
+                alert('Veuillez remplir les champs obligatoires : Commercial, Montant et Date de facturation');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today as default date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date_facturation').value = today;
+            calculerDateEcheance();
+            
+            // Initial calculations
+            calculerSolde();
+            
+            // Initialize client type
+            gererTypeClient();
+        });
+    </script>
+</body>
+</html>

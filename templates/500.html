@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur Serveur - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .error-container {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: 800;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+        
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+        
+        .error-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-width: 800px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 14px;
+            color: #666;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Erreur 500 - Erreur Serveur</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="error-container">
+            <div class="error-code">500</div>
+            
+            <h1 class="error-title">Erreur Serveur Interne</h1>
+            
+            <p class="error-message">
+                Une erreur inattendue s'est produite sur le serveur.
+                Notre équipe technique a été notifiée et travaille à résoudre le problème.
+            </p>
+            
+            <div class="btn-group">
+                <a href="{{ url_for('accueil') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-home"></i> Retour à l'accueil
+                </a>
+                <a href="javascript:location.reload()" class="btn btn-warning btn-large">
+                    <i class="fas fa-redo"></i> Réessayer
+                </a>
+            </div>
+            
+            {% if error %}
+            <div class="error-details mt-30">
+                <h4><i class="fas fa-bug"></i> Détails techniques (pour l'administrateur) :</h4>
+                <pre style="margin-top: 10px;">{{ error }}</pre>
+            </div>
+            {% endif %}
+            
+            <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px; max-width: 600px;">
+                <h3><i class="fas fa-headset"></i> Support technique</h3>
+                <p style="color: #7f8c8d; margin-top: 10px;">
+                    Si le problème persiste, contactez le support technique SOCoMA.
+                    Application de suivi des créances pour 4 commerciaux.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('liste_creances') }}">Créances</a>
+        </p>
+    </div>
+</body>
+</html>

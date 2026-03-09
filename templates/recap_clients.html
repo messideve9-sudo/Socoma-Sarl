@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Récapitulatif Clients - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .recap-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0 30px 0;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+        
+        .filters-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .client-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .client-header {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .client-body {
+            padding: 20px;
+        }
+        
+        .client-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .client-stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .client-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #2c3e50;
+            margin: 8px 0;
+        }
+        
+        .client-stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .client-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .client-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin: 5px 0;
+        }
+        
+        .badge-regular { background: #a3e4d7; color: #16a085; }
+        .badge-retard { background: #f5b7b1; color: #c0392b; }
+        .badge-solde { background: #abebc6; color: #27ae60; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 40px;
+        }
+        
+        .page-link {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .page-link:hover {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .page-link.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Récapitulatif par Client</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('recap_clients') }}" class="nav-link active">
+                <i class="fas fa-users"></i> Clients
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-user-tie"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- En-tête du récapitulatif -->
+            <div class="recap-header">
+                <h2><i class="fas fa-users"></i> Récapitulatif par Client</h2>
+                <p>Consultez l'historique et les statistiques de chaque client</p>
+                
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ clients_recap|length }}</div>
+                        <div class="stat-label">Clients</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_creances }}</div>
+                        <div class="stat-label">Créances totales</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_montant|format_money }}</div>
+                        <div class="stat-label">Montant total</div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_solde|format_money }}</div>
+                        <div class="stat-label">Total à solder</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="filters-panel">
+                <form method="GET" action="{{ url_for('recap_clients') }}" class="form-row">
+                    {% if current_user.role != 'commercial' %}
+                    <div class="form-group">
+                        <label for="commercial">Filtrer par commercial</label>
+                        <select id="commercial" name="commercial" class="form-control" onchange="this.form.submit()">
+                            <option value="">Tous les commerciaux</option>
+                            {% for commercial in commerciaux %}
+                            <option value="{{ commercial }}" {% if selected_commercial == commercial %}selected{% endif %}>
+                                {{ commercial }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="form-group">
+                        <label for="search">Rechercher un client</label>
+                        <div class="input-group">
+                            <input type="text" id="search" name="search" class="form-control" 
+                                   placeholder="Nom du client..." value="{{ request.args.get('search', '') }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sort">Trier par</label>
+                        <select id="sort" name="sort" class="form-control" onchange="this.form.submit()">
+                            <option value="total_solde_desc" {% if request.args.get('sort') == 'total_solde_desc' %}selected{% endif %}>
+                                Solde décroissant
+                            </option>
+                            <option value="total_solde_asc" {% if request.args.get('sort') == 'total_solde_asc' %}selected{% endif %}>
+                                Solde croissant
+                            </option>
+                            <option value="total_montant_desc" {% if request.args.get('sort') == 'total_montant_desc' %}selected{% endif %}>
+                                Montant décroissant
+                            </option>
+                            <option value="nom_asc" {% if request.args.get('sort') == 'nom_asc' %}selected{% endif %}>
+                                Nom A-Z
+                            </option>
+                            <option value="nom_desc" {% if request.args.get('sort') == 'nom_desc' %}selected{% endif %}>
+                                Nom Z-A
+                            </option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Liste des clients -->
+            {% if clients_recap %}
+            <div class="clients-list">
+                {% for client in clients_recap %}
+                <div class="client-card">
+                    <div class="client-header">
+                        <div class="d-flex justify-between align-center">
+                            <div>
+                                <h3 style="margin: 0 0 5px 0; color: #2c3e50;">
+                                    <i class="fas fa-user"></i> {{ client.client }}
+                                </h3>
+                                <div style="font-size: 14px; color: #7f8c8d;">
+                                    <i class="fas fa-user-tie"></i> {{ client.commercial }}
+                                    {% if client.marche %}
+                                    • <i class="fas fa-store"></i> {{ client.marche }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                <span class="client-badge {% if client.total_solde <= 0 %}badge-solde{% elif client.total_solde > 0 %}badge-regular{% else %}badge-retard{% endif %}">
+                                    {% if client.total_solde <= 0 %}
+                                        COMPTE SOLDÉ
+                                    {% else %}
+                                        {{ client.total_solde|format_money }} à solder
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="client-body">
+                        <div class="client-stats">
+                            <div class="client-stat">
+                                <div class="client-stat-label">Nombre de créances</div>
+                                <div class="client-stat-value">{{ client.nombre_creances }}</div>
+                            </div>
+                            
+                            <div class="client-stat">
+                                <div class="client-stat-label">Montant total</div>
+                                <div class="client-stat-value">{{ client.total_montant|format_money }}</div>
+                            </div>
+                            
+                            <div class="client-stat">
+                                <div class="client-stat-label">Déjà payé</div>
+                                <div class="client-stat-value">{{ client.total_versement|format_money }}</div>
+                            </div>
+                            
+                            <div class="client-stat">
+                                <div class="client-stat-label">Solde à payer</div>
+                                <div class="client-stat-value {% if client.total_solde > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ client.total_solde|format_money }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if client.derniere_echeance %}
+                        <div style="margin: 15px 0; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #f39c12;">
+                            <div style="font-size: 14px; font-weight: 600;">
+                                <i class="fas fa-calendar-check"></i> Dernière échéance
+                            </div>
+                            <div style="font-size: 16px; margin-top: 5px;">
+                                {{ client.derniere_echeance|format_date }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="client-actions">
+                            <a href="{{ url_for('detail_client', client_name=client.client.replace(' ', '_')) }}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-eye"></i> Détails
+                            </a>
+                            
+                            <a href="{{ url_for('liste_creances') }}?client={{ client.client }}" 
+                               class="btn btn-info">
+                                <i class="fas fa-file-invoice-dollar"></i> Voir créances
+                            </a>
+                            
+                            <a href="{{ url_for('ajouter_creance') }}?client={{ client.client }}" 
+                               class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> Nouvelle créance
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-users-slash"></i>
+                </div>
+                <h3 style="color: #7f8c8d; margin-bottom: 15px;">Aucun client trouvé</h3>
+                <p style="margin-bottom: 25px; color: #95a5a6;">
+                    {% if selected_commercial %}
+                        Aucun client pour ce commercial. Ajoutez des créances pour voir apparaître les clients.
+                    {% else %}
+                        Aucune créance enregistrée pour le moment. Ajoutez votre première créance.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('ajouter_creance') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-plus-circle"></i> Ajouter une créance
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Export -->
+            {% if clients_recap %}
+            <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 12px;">
+                <div class="d-flex justify-between align-center">
+                    <div>
+                        <h4><i class="fas fa-download"></i> Exporter les données</h4>
+                        <p style="color: #7f8c8d; margin-top: 5px;">
+                            Exportez le récapitulatif des clients au format Excel
+                        </p>
+                    </div>
+                    <a href="{{ url_for('export_excel') }}?type=clients" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Exporter Excel
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('liste_creances') }}">Créances</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a>
+        </p>
+    </div>
+
+    <script>
+        // Fonction de recherche rapide
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        this.form.submit();
+                    }
+                });
+            }
+            
+            // Mise en évidence des clients avec solde important
+            const clientCards = document.querySelectorAll('.client-card');
+            clientCards.forEach(card => {
+                const soldeText = card.querySelector('.text-danger');
+                if (soldeText) {
+                    const soldeValue = parseFloat(soldeText.textContent.replace(/[^\d.-]/g, ''));
+                    if (soldeValue > 500000) { // Plus de 500,000 FCFA
+                        card.style.borderLeft = '4px solid #e74c3c';
+                    } else if (soldeValue > 100000) { // Plus de 100,000 FCFA
+                        card.style.borderLeft = '4px solid #f39c12';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

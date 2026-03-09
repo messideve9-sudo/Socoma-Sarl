@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Non Trouvée - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .error-container {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: 800;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+        
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            color: #95a5a6;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Erreur 404 - Page Non Trouvée</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="error-container">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            
+            <div class="error-code">404</div>
+            
+            <h1 class="error-title">Page Non Trouvée</h1>
+            
+            <p class="error-message">
+                La page que vous recherchez n'existe pas ou a été déplacée.
+                Vérifiez l'URL ou utilisez les liens ci-dessous pour naviguer.
+            </p>
+            
+            <div class="error-actions">
+                <a href="{{ url_for('accueil') }}" class="btn btn-primary btn-large">
+                    <i class="fas fa-home"></i> Retour à l'accueil
+                </a>
+                <a href="{{ url_for('liste_creances') }}" class="btn btn-success btn-large">
+                    <i class="fas fa-list"></i> Voir les créances
+                </a>
+                <a href="javascript:history.back()" class="btn btn-secondary btn-large">
+                    <i class="fas fa-arrow-left"></i> Page précédente
+                </a>
+            </div>
+            
+            <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px; max-width: 600px;">
+                <h3><i class="fas fa-lightbulb"></i> Besoin d'aide ?</h3>
+                <p style="color: #7f8c8d; margin-top: 10px;">
+                    Si vous pensez qu'il s'agit d'une erreur, contactez l'administrateur système.
+                    Cette application gère les créances des 4 commerciaux SOCoMA.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - SOCOMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bleu-nuit: #0F172A;
+            --indigo: #6366F1;
+            --cyan-neon: #22D3EE;
+            --blanc-soft: #F8FAFC;
+            --glass-bg: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(99, 102, 241, 0.3);
+        }
+
+        body {
+            background-color: var(--bleu-nuit);
+            color: var(--blanc-soft);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 50%, rgba(34, 211, 238, 0.1) 0%, transparent 25%),
+                radial-gradient(circle at 30% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 30%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header avec effet glassmorphisme */
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 30px rgba(34, 211, 238, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--indigo), var(--cyan-neon));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--blanc-soft);
+            box-shadow: 0 0 20px var(--cyan-neon);
+        }
+
+        .logo-container h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--blanc-soft);
+        }
+
+        .subtitle {
+            color: var(--cyan-neon);
+            font-weight: 500;
+        }
+
+        .main-nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--blanc-soft);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--cyan-neon);
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+        }
+
+        .nav-link.active {
+            background: var(--indigo);
+            color: var(--blanc-soft);
+            box-shadow: 0 0 20px var(--indigo);
+        }
+
+        .user-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-role {
+            background: var(--indigo);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .content {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 10px 40px rgba(34, 211, 238, 0.1);
+        }
+
+        /* Dashboard Header */
+        .dashboard-header {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(34, 211, 238, 0.2));
+            border: 1px solid var(--glass-border);
+            color: var(--blanc-soft);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--indigo), var(--cyan-neon));
+        }
+
+        .dashboard-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--cyan-neon);
+        }
+
+        .dashboard-header p {
+            color: var(--blanc-soft);
+            opacity: 0.9;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .kpi-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .kpi-card:hover::before {
+            left: 100%;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--cyan-neon);
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
+        }
+
+        .kpi-card.blue { border-top: 4px solid var(--indigo); }
+        .kpi-card.green { border-top: 4px solid #10b981; }
+        .kpi-card.orange { border-top: 4px solid #f59e0b; }
+        .kpi-card.red { border-top: 4px solid #ef4444; }
+        .kpi-card.purple { border-top: 4px solid #8b5cf6; }
+
+        .kpi-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--cyan-neon);
+        }
+
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 15px 0;
+            color: var(--blanc-soft);
+        }
+
+        .kpi-label {
+            font-size: 14px;
+            color: var(--cyan-neon);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .kpi-trend {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .kpi-trend.positive { color: #10b981; }
+        .kpi-trend.negative { color: #ef4444; }
+
+        /* Chart Containers */
+        .chart-container {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .chart-container:hover {
+            border-color: var(--cyan-neon);
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
+        }
+
+        .chart-container h3 {
+            color: var(--cyan-neon);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+        }
+
+        .chart-wrapper {
+            height: 350px;
+            position: relative;
+        }
+
+        /* Commercial Performance */
+        .commercial-performance-list {
+            margin-top: 20px;
+        }
+
+        .commercial-performance {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .commercial-performance:hover {
+            border-color: var(--cyan-neon);
+            transform: translateX(10px);
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+        }
+
+        .commercial-rank {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--indigo), var(--cyan-neon));
+            color: var(--blanc-soft);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .commercial-info {
+            flex: 1;
+        }
+
+        .commercial-name {
+            font-weight: 600;
+            color: var(--blanc-soft);
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.excellent { background: #10b981; }
+        .progress-fill.good { background: var(--indigo); }
+        .progress-fill.average { background: #f59e0b; }
+        .progress-fill.poor { background: #ef4444; }
+
+        .performance-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .performance-excellent { background: #10b981; color: white; }
+        .performance-good { background: var(--indigo); color: white; }
+        .performance-average { background: #f59e0b; color: white; }
+        .performance-poor { background: #ef4444; color: white; }
+
+        /* Alert List */
+        .alert-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            padding: 15px;
+            border-left: 4px solid;
+            margin-bottom: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .alert-item:hover {
+            transform: translateX(5px);
+            border-color: var(--cyan-neon);
+        }
+
+        .alert-item.warning { border-left-color: #f59e0b; }
+        .alert-item.danger { border-left-color: #ef4444; }
+        .alert-item.info { border-left-color: var(--cyan-neon); }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--cyan-neon);
+            border-bottom: 2px solid var(--indigo);
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--blanc-soft);
+        }
+
+        tr:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        tfoot tr {
+            background: rgba(99, 102, 241, 0.15);
+            font-weight: bold;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid;
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--indigo);
+            color: var(--blanc-soft);
+            box-shadow: 0 0 20px var(--indigo);
+        }
+
+        .btn-primary:hover {
+            background: var(--cyan-neon);
+            box-shadow: 0 0 30px var(--cyan-neon);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--cyan-neon);
+            color: var(--bleu-nuit);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 60px;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            color: var(--blanc-soft);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .footer-links a {
+            color: var(--cyan-neon);
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .footer-links a:hover {
+            text-shadow: 0 0 10px var(--cyan-neon);
+        }
+
+        /* Utilities */
+        .d-flex { display: flex; }
+        .flex-column { flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .align-center { align-items: center; }
+        .gap-10 { gap: 10px; }
+        .mt-20 { margin-top: 20px; }
+        .text-danger { color: #ef4444; }
+        .text-warning { color: #f59e0b; }
+        .text-success { color: #10b981; }
+        .text-muted { opacity: 0.6; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-wrapper {
+                height: 300px;
+            }
+            
+            .main-nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .user-info {
+                margin-left: 0;
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bleu-nuit);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--indigo);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--cyan-neon);
+            box-shadow: 0 0 10px var(--cyan-neon);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCOMA</h1>
+                <p class="subtitle">Tableau de Bord</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link active">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- En-tête du tableau de bord -->
+            <div class="dashboard-header">
+                <h2><i class="fas fa-chart-line"></i> Tableau de Bord - Vue d'ensemble</h2>
+                <p>Performance globale et indicateurs clés - Mise à jour: {{ now.strftime('%d/%m/%Y à %H:%M') }}</p>
+            </div>
+
+            <!-- KPI Principaux -->
+            <div class="kpi-grid">
+                <div class="kpi-card blue">
+                    <div class="kpi-icon">
+                        <i class="fas fa-money-check-alt"></i>
+                    </div>
+                    <div class="kpi-value">{{ total_creances|format_money }}</div>
+                    <div class="kpi-label">Total des Créances</div>
+                    <div class="kpi-trend positive">
+                        <i class="fas fa-chart-line"></i> 4 commerciaux actifs
+                    </div>
+                </div>
+                
+                <div class="kpi-card green">
+                    <div class="kpi-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="kpi-value">{{ (total_creances - montant_a_solder)|format_money }}</div>
+                    <div class="kpi-label">Déjà Soldé</div>
+                    <div class="kpi-trend positive">
+                        {% if total_creances > 0 %}
+                            {{ (((total_creances - montant_a_solder) / total_creances) * 100)|round(2) }}% du total
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="kpi-card orange">
+                    <div class="kpi-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="kpi-value">{{ montant_a_solder|format_money }}</div>
+                    <div class="kpi-label">À Solder</div>
+                    <div class="kpi-trend {% if montant_a_solder > 0 %}negative{% else %}positive{% endif %}">
+                        {% if total_creances > 0 %}
+                            {{ ((montant_a_solder / total_creances) * 100)|round(2) }}% du total
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="kpi-card red">
+                    <div class="kpi-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="kpi-value">{{ montant_retard|format_money }}</div>
+                    <div class="kpi-label">En Retard</div>
+                    <div class="kpi-trend negative">
+                        TPAR: {{ tpar|round(2) }}%
+                    </div>
+                </div>
+                
+                <div class="kpi-card purple">
+                    <div class="kpi-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="kpi-value">{{ creances_retard|length }}</div>
+                    <div class="kpi-label">Créances en Retard</div>
+                    <div class="kpi-trend {% if creances_retard|length > 0 %}negative{% else %}positive{% endif %}">
+                        {% if creances_retard|length > 0 %}
+                            {{ creances_retard|length }} nécessitent suivi
+                        {% else %}
+                            Aucun retard
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphiques -->
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar"></i> Performance par Commercial</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartPerformance"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-pie"></i> Répartition des Créances</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chartRepartition"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance des commerciaux -->
+            <div class="chart-container">
+                <h3><i class="fas fa-trophy"></i> Classement des Commerciaux</h3>
+                <div class="commercial-performance-list">
+                    {% set sorted_commerciaux = stats_commerciaux.items()|sort(attribute='1.total', reverse=true) %}
+                    {% for commercial, stats in sorted_commerciaux %}
+                    <div class="commercial-performance">
+                        <div class="commercial-rank">{{ loop.index }}</div>
+                        <div class="commercial-info">
+                            <div class="d-flex justify-between align-center">
+                                <div class="commercial-name">{{ commercial }}</div>
+                                <div>
+                                    <span class="performance-badge 
+                                        {% if stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.9 %}performance-excellent
+                                        {% elif stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.7 %}performance-good
+                                        {% elif stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.5 %}performance-average
+                                        {% else %}performance-poor{% endif %}">
+                                        {% if stats.total > 0 %}
+                                            {{ (((stats.total - stats.retard) / stats.total) * 100)|round(0) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill 
+                                    {% if stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.9 %}excellent
+                                    {% elif stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.7 %}good
+                                    {% elif stats.total > 0 and (stats.total - stats.retard)/stats.total > 0.5 %}average
+                                    {% else %}poor{% endif %}" 
+                                    style="width: {% if stats.total > 0 %}{{ ((stats.total - stats.retard) / stats.total) * 100 }}%{% else %}0%{% endif %}">
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; opacity: 0.7;">
+                                {{ stats.total|format_money }} total • 
+                                {{ stats.retard|format_money }} en retard • 
+                                {{ stats.count }} créance(s)
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Alertes et actions -->
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3><i class="fas fa-exclamation-circle"></i> Alertes à Suivre</h3>
+                    <div class="alert-list">
+                        {% if top_retard %}
+                            {% for creance in top_retard %}
+                            <div class="alert-item danger">
+                                <div class="d-flex justify-between align-center">
+                                    <div>
+                                        <strong>{{ creance.client }}</strong>
+                                        <div style="font-size: 14px; opacity: 0.7; margin-top: 5px;">
+                                            {{ creance.commercial }} • {{ creance.solde|format_money }}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-danger">{{ creance.jours_retard }} jours</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <a href="{{ url_for('modifier_creance', id=creance.id) }}" class="btn btn-small btn-warning">
+                                        <i class="fas fa-edit"></i> Modifier
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert-item info">
+                                <i class="fas fa-check-circle"></i> Aucune alerte pour le moment
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3><i class="fas fa-bolt"></i> Actions Rapides</h3>
+                    <div class="d-flex flex-column gap-10">
+                        <a href="{{ url_for('ajouter_creance') }}" class="btn btn-success btn-block">
+                            <i class="fas fa-plus-circle"></i> Ajouter une Créance
+                        </a>
+                        <a href="{{ url_for('liste_creances') }}" class="btn btn-primary btn-block">
+                            <i class="fas fa-list"></i> Voir Toutes les Créances
+                        </a>
+                        <a href="{{ url_for('export_excel') }}" class="btn btn-info btn-block">
+                            <i class="fas fa-file-excel"></i> Exporter Excel
+                        </a>
+                        {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin_reset_creances') }}" class="btn btn-warning btn-block">
+                            <i class="fas fa-redo"></i> Administration
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid var(--glass-border);">
+                        <h4 style="color: var(--cyan-neon);"><i class="fas fa-lightbulb"></i> Recommandations</h4>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            {% if tpar > 20 %}
+                            <li style="color: #ef4444;">⚠️ TPAR élevé ({{ tpar|round(2) }}%) - Renforcer le suivi des retards</li>
+                            {% endif %}
+                            {% if montant_a_solder > total_creances * 0.3 %}
+                            <li style="color: #f59e0b;">📊 Important montant à solder - Planifier les relances</li>
+                            {% endif %}
+                            {% if creances_retard|length > 5 %}
+                            <li style="color: #ef4444;">🔴 {{ creances_retard|length }} créances en retard - Actions prioritaires nécessaires</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiques détaillées -->
+            <div class="chart-container">
+                <h3><i class="fas fa-chart-line"></i> Statistiques Détaillées</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commercial</th>
+                                <th>Total Créances</th>
+                                <th>À Solder</th>
+                                <th>En Retard</th>
+                                <th>TPAR</th>
+                                <th>Performance</th>
+                                <th>Nombre Clients</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for commercial, stats in stats_commerciaux.items() %}
+                            <tr>
+                                <td><strong>{{ commercial }}</strong></td>
+                                <td>{{ stats.total|format_money }}</td>
+                                <td>{{ stats.solde|format_money }}</td>
+                                <td class="{% if stats.retard > 0 %}text-danger{% endif %}">
+                                    {{ stats.retard|format_money }}
+                                </td>
+                                <td>
+                                    {% if stats.total > 0 %}
+                                        <span class="{% if (stats.retard/stats.total*100) > 20 %}text-danger{% elif (stats.retard/stats.total*100) > 10 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ (stats.retard/stats.total*100)|round(2) }}%
+                                        </span>
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if stats.total > 0 %}
+                                        {% set performance = ((stats.total - stats.retard) / stats.total) * 100 %}
+                                        {% if performance >= 90 %}
+                                            <span class="performance-badge performance-excellent">{{ performance|round(0) }}%</span>
+                                        {% elif performance >= 70 %}
+                                            <span class="performance-badge performance-good">{{ performance|round(0) }}%</span>
+                                        {% elif performance >= 50 %}
+                                            <span class="performance-badge performance-average">{{ performance|round(0) }}%</span>
+                                        {% else %}
+                                            <span class="performance-badge performance-poor">{{ performance|round(0) }}%</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stats.clients }}</td>
+                                <td>
+                                    <a href="{{ url_for('liste_creances') }}?commercial={{ commercial }}" 
+                                       class="btn btn-small btn-primary">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td><strong>TOTAL</strong></td>
+                                <td><strong>{{ total_creances|format_money }}</strong></td>
+                                <td><strong>{{ montant_a_solder|format_money }}</strong></td>
+                                <td><strong class="{% if montant_retard > 0 %}text-danger{% endif %}">{{ montant_retard|format_money }}</strong></td>
+                                <td><strong>{{ tpar|round(2) }}%</strong></td>
+                                <td>
+                                    {% set perf_totale = ((total_creances - montant_retard) / total_creances * 100) if total_creances > 0 else 0 %}
+                                    {% if perf_totale >= 90 %}
+                                        <span class="performance-badge performance-excellent">{{ perf_totale|round(0) }}%</span>
+                                    {% elif perf_totale >= 70 %}
+                                        <span class="performance-badge performance-good">{{ perf_totale|round(0) }}%</span>
+                                    {% elif perf_totale >= 50 %}
+                                        <span class="performance-badge performance-average">{{ perf_totale|round(0) }}%</span>
+                                    {% else %}
+                                        <span class="performance-badge performance-poor">{{ perf_totale|round(0) }}%</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ stats_commerciaux.values()|sum(attribute='count') }}</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCOMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('liste_creances') }}">Créances</a> • 
+            <a href="{{ url_for('recap_clients') }}">Clients</a>
+        </p>
+    </div>
+
+    <script>
+        // Initialisation des graphiques
+        document.addEventListener('DOMContentLoaded', function() {
+            // Données pour les graphiques
+            const commerciaux = {{ stats_commerciaux.keys()|list|tojson }};
+            const totals = {{ stats_commerciaux.values()|map(attribute='total')|list|tojson }};
+            const retards = {{ stats_commerciaux.values()|map(attribute='retard')|list|tojson }};
+            const soldes = {{ stats_commerciaux.values()|map(attribute='solde')|list|tojson }};
+
+            // Configuration commune pour les graphiques
+            Chart.defaults.color = '#F8FAFC';
+            Chart.defaults.borderColor = 'rgba(99, 102, 241, 0.3)';
+
+            // Graphique de performance
+            const ctxPerformance = document.getElementById('chartPerformance').getContext('2d');
+            new Chart(ctxPerformance, {
+                type: 'bar',
+                data: {
+                    labels: commerciaux,
+                    datasets: [
+                        {
+                            label: 'Total Créances',
+                            data: totals,
+                            backgroundColor: '#6366F1',
+                            borderRadius: 6,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            label: 'En Retard',
+                            data: retards,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 6,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            label: 'À Solder',
+                            data: soldes,
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 6,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#F8FAFC',
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#22D3EE',
+                            bodyColor: '#F8FAFC',
+                            borderColor: '#6366F1',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += new Intl.NumberFormat('fr-FR').format(context.raw) + ' FCFA';
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(99, 102, 241, 0.1)'
+                            },
+                            ticks: {
+                                color: '#F8FAFC',
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return (value / 1000000).toFixed(1) + 'M';
+                                    }
+                                    if (value >= 1000) {
+                                        return (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#F8FAFC' }
+                        }
+                    }
+                }
+            });
+
+            // Graphique de répartition
+            const ctxRepartition = document.getElementById('chartRepartition').getContext('2d');
+            
+            // Calculer les pourcentages
+            const totalMontant = totals.reduce((a, b) => a + b, 0);
+            
+            new Chart(ctxRepartition, {
+                type: 'doughnut',
+                data: {
+                    labels: commerciaux,
+                    datasets: [{
+                        data: totals,
+                        backgroundColor: [
+                            '#6366F1',
+                            '#22D3EE',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#8b5cf6',
+                            '#10b981'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#0F172A',
+                        borderRadius: 10,
+                        spacing: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#F8FAFC',
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#22D3EE',
+                            bodyColor: '#F8FAFC',
+                            borderColor: '#6366F1',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const percentage = totalMontant > 0 ? 
+                                        ((value / totalMontant) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${new Intl.NumberFormat('fr-FR').format(value)} FCFA (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            // Animation d'entrée pour les KPI
+            const kpiCards = document.querySelectorAll('.kpi-card');
+            kpiCards.forEach((card, index) => {
+                card.style.animation = `fadeIn 0.5s ease ${index * 0.1}s both`;
+            });
+
+            // Mettre à jour l'heure de mise à jour toutes les minutes
+            function updateTime() {
+                const now = new Date();
+                const timeElement = document.querySelector('.dashboard-header p');
+                if (timeElement) {
+                    timeElement.textContent = `Performance globale et indicateurs clés - Mise à jour: ${now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}`;
+                }
+            }
+            
+            setInterval(updateTime, 60000);
+
+            // Animation des barres de progression
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

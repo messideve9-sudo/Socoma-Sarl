@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer Compte - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .creation-header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .role-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .role-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .role-card.selected {
+            border-color: #27ae60;
+            background: #f8fff9;
+        }
+        
+        .role-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .role-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .role-desc {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        .commercial-select {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .password-strength {
+            height: 5px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .strength-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .strength-weak { background: #e74c3c; width: 25%; }
+        .strength-medium { background: #f39c12; width: 50%; }
+        .strength-strong { background: #27ae60; width: 75%; }
+        .strength-very-strong { background: #2ecc71; width: 100%; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Création de compte utilisateur</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link active">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- En-tête -->
+            <div class="creation-header">
+                <h2><i class="fas fa-user-plus"></i> Créer un Nouveau Compte</h2>
+                <p>Ajoutez un nouvel utilisateur au système de suivi des créances</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('creer_compte') }}" id="creationForm" onsubmit="return validerFormulaire()">
+                <!-- Informations de base -->
+                <div class="card mb-30">
+                    <h3><i class="fas fa-user"></i> 1. Informations de connexion</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username" class="required">Nom d'utilisateur</label>
+                            <input type="text" id="username" name="username" class="form-control" 
+                                   placeholder="ex: jean.dupont" required>
+                            <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                                Identifiant unique pour la connexion
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password" class="required">Mot de passe</label>
+                            <input type="password" id="password" name="password" class="form-control" 
+                                   placeholder="Minimum 6 caractères" required onkeyup="checkPasswordStrength()">
+                            <div class="password-strength">
+                                <div class="strength-bar" id="passwordStrength"></div>
+                            </div>
+                            <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                                <span id="passwordStrengthText">Faible</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirm_password" class="required">Confirmer le mot de passe</label>
+                            <input type="password" id="confirm_password" name="confirm_password" class="form-control" 
+                                   placeholder="Retapez le mot de passe" required onkeyup="checkPasswordMatch()">
+                            <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                                <span id="passwordMatchText"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sélection du rôle -->
+                <div class="card mb-30">
+                    <h3><i class="fas fa-user-tag"></i> 2. Sélectionnez un rôle</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">Choisissez le type d'accès pour cet utilisateur</p>
+                    
+                    <div class="form-row">
+                        <div class="role-card" onclick="selectRole('admin')" id="role-admin">
+                            <div class="role-icon" style="color: #e74c3c;">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="role-title">Administrateur</div>
+                            <div class="role-desc">
+                                Accès complet à toutes les fonctionnalités<br>
+                                Gestion des utilisateurs<br>
+                                Réinitialisation des données
+                            </div>
+                        </div>
+                        
+                        <div class="role-card" onclick="selectRole('commercial')" id="role-commercial">
+                            <div class="role-icon" style="color: #3498db;">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="role-title">Commercial</div>
+                            <div class="role-desc">
+                                Accès à ses propres clients et créances<br>
+                                Gestion de son portefeuille<br>
+                                Vue limitée aux données personnelles
+                            </div>
+                        </div>
+                        
+                        <div class="role-card" onclick="selectRole('user')" id="role-user">
+                            <div class="role-icon" style="color: #27ae60;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="role-title">Utilisateur</div>
+                            <div class="role-desc">
+                                Consultation générale des données<br>
+                                Pas de modifications<br>
+                                Vue en lecture seule
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="role" name="role" value="">
+                </div>
+
+                <!-- Sélection du commercial (si rôle commercial) -->
+                <div class="card mb-30" id="commercial-select">
+                    <h3><i class="fas fa-user-tie"></i> 3. Assigner un commercial</h3>
+                    <div class="form-group">
+                        <label for="commercial" class="required">Sélectionner le commercial</label>
+                        <select id="commercial" name="commercial" class="form-control">
+                            <option value="">Sélectionnez un commercial</option>
+                            <option value="YAYA CAMARA">YAYA CAMARA</option>
+                            <option value="BADRA KEITA">BADRA KEITA</option>
+                            <option value="ISSA DIAKITE">ISSA DIAKITE</option>
+                            <option value="DIDIER DEMBELE">DIDIER DEMBELE</option>
+                        </select>
+                        <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                            Le commercial sera limité à voir uniquement ses propres données
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="d-flex justify-between align-center mt-40">
+                    <div>
+                        <a href="{{ url_for('gestion_utilisateurs') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour à la liste
+                        </a>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="reset" class="btn btn-warning">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </button>
+                        <button type="submit" class="btn btn-success btn-large">
+                            <i class="fas fa-check-circle"></i> Créer le compte
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Guide des rôles -->
+            <div class="card mt-30">
+                <h3><i class="fas fa-info-circle"></i> Guide des permissions</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fonctionnalité</th>
+                                <th>Admin</th>
+                                <th>Commercial</th>
+                                <th>Utilisateur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Voir toutes les créances</td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Ajouter/modifier créances</td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td>Seulement les siennes</td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Gestion utilisateurs</td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Export Excel</td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                            </tr>
+                            <tr>
+                                <td>Réinitialisation données</td>
+                                <td><i class="fas fa-check text-success"></i></td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                                <td><i class="fas fa-times text-danger"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('gestion_utilisateurs') }}">Utilisateurs</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a>
+        </p>
+    </div>
+
+    <script>
+        function selectRole(role) {
+            // Désélectionner toutes les cartes
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Sélectionner la carte cliquée
+            document.getElementById('role-' + role).classList.add('selected');
+            
+            // Mettre à jour le champ caché
+            document.getElementById('role').value = role;
+            
+            // Afficher/masquer la sélection de commercial
+            const commercialSelect = document.getElementById('commercial-select');
+            if (role === 'commercial') {
+                commercialSelect.style.display = 'block';
+                document.getElementById('commercial').required = true;
+            } else {
+                commercialSelect.style.display = 'none';
+                document.getElementById('commercial').required = false;
+                document.getElementById('commercial').value = '';
+            }
+        }
+        
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthBar = document.getElementById('passwordStrength');
+            const strengthText = document.getElementById('passwordStrengthText');
+            
+            let strength = 0;
+            
+            // Longueur
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            
+            // Complexité
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            // Mettre à jour la barre et le texte
+            strengthBar.className = 'strength-bar';
+            
+            if (strength <= 2) {
+                strengthBar.classList.add('strength-weak');
+                strengthText.textContent = 'Faible';
+                strengthText.style.color = '#e74c3c';
+            } else if (strength <= 3) {
+                strengthBar.classList.add('strength-medium');
+                strengthText.textContent = 'Moyen';
+                strengthText.style.color = '#f39c12';
+            } else if (strength <= 4) {
+                strengthBar.classList.add('strength-strong');
+                strengthText.textContent = 'Fort';
+                strengthText.style.color = '#27ae60';
+            } else {
+                strengthBar.classList.add('strength-very-strong');
+                strengthText.textContent = 'Très fort';
+                strengthText.style.color = '#2ecc71';
+            }
+        }
+        
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const matchText = document.getElementById('passwordMatchText');
+            
+            if (confirmPassword === '') {
+                matchText.textContent = '';
+                return;
+            }
+            
+            if (password === confirmPassword) {
+                matchText.textContent = 'Les mots de passe correspondent';
+                matchText.style.color = '#27ae60';
+            } else {
+                matchText.textContent = 'Les mots de passe ne correspondent pas';
+                matchText.style.color = '#e74c3c';
+            }
+        }
+        
+        function validerFormulaire() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const role = document.getElementById('role').value;
+            const commercial = document.getElementById('commercial').value;
+            
+            // Validation du nom d'utilisateur
+            if (!username) {
+                alert('Veuillez entrer un nom d\'utilisateur');
+                return false;
+            }
+            
+            // Validation du mot de passe
+            if (password.length < 6) {
+                alert('Le mot de passe doit contenir au moins 6 caractères');
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('Les mots de passe ne correspondent pas');
+                return false;
+            }
+            
+            // Validation du rôle
+            if (!role) {
+                alert('Veuillez sélectionner un rôle');
+                return false;
+            }
+            
+            // Validation du commercial (si rôle commercial)
+            if (role === 'commercial' && !commercial) {
+                alert('Veuillez sélectionner un commercial');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sélectionner le rôle "user" par défaut
+            selectRole('user');
+        });
+    </script>
+</body>
+</html>

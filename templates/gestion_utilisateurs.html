@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Utilisateurs - SOCoMA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .user-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+        
+        .user-card.admin { border-left-color: #e74c3c; }
+        .user-card.commercial { border-left-color: #3498db; }
+        .user-card.user { border-left-color: #27ae60; }
+        
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .user-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .user-role-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: white;
+        }
+        
+        .badge-admin { background: #e74c3c; }
+        .badge-commercial { background: #3498db; }
+        .badge-user { background: #27ae60; }
+        
+        .user-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h1>Suivi des Créances - SOCoMA</h1>
+                <p class="subtitle">Gestion des Utilisateurs</p>
+            </div>
+        </div>
+        
+        <div class="main-nav">
+            <a href="{{ url_for('accueil') }}" class="nav-link">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('liste_creances') }}" class="nav-link">
+                <i class="fas fa-file-invoice-dollar"></i> Créances
+            </a>
+            <a href="{{ url_for('tableau_bord') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Tableau de Bord
+            </a>
+            <a href="{{ url_for('commerciaux') }}" class="nav-link">
+                <i class="fas fa-users"></i> Commerciaux
+            </a>
+            <a href="{{ url_for('gestion_utilisateurs') }}" class="nav-link active">
+                <i class="fas fa-cog"></i> Paramètres
+            </a>
+            
+            <div class="user-info">
+                <span>
+                    <i class="fas fa-user"></i> {{ current_user.username }}
+                    <span class="user-role">{{ current_user.role|upper }}</span>
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-small">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="content">
+            <!-- En-tête administration -->
+            <div class="admin-header">
+                <h2><i class="fas fa-users-cog"></i> Administration des Utilisateurs</h2>
+                <p>Gérez les accès et permissions des utilisateurs du système</p>
+                <div class="btn-group mt-20">
+                    <a href="{{ url_for('creer_compte') }}" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> Créer un nouveau compte
+                    </a>
+                    <a href="{{ url_for('admin_reset_creances') }}" class="btn btn-warning">
+                        <i class="fas fa-redo"></i> Réinitialiser créances
+                    </a>
+                    <a href="{{ url_for('import_creances') }}" class="btn btn-info">
+                        <i class="fas fa-file-import"></i> Importer Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Total Utilisateurs</h4>
+                    <div class="stat-value">{{ utilisateurs|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Administrateurs</h4>
+                    <div class="stat-value">
+                        {{ utilisateurs|selectattr('role', 'equalto', 'admin')|list|length }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h4>Commerciaux</h4>
+                    <div class="stat-value">
+                        {{ utilisateurs|selectattr('role', 'equalto', 'commercial')|list|length }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h4>Utilisateurs simples</h4>
+                    <div class="stat-value">
+                        {{ utilisateurs|selectattr('role', 'equalto', 'user')|list|length }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des utilisateurs -->
+            <h3><i class="fas fa-list"></i> Liste des Utilisateurs</h3>
+            {% if utilisateurs %}
+                {% for utilisateur in utilisateurs %}
+                <div class="user-card {{ utilisateur.role }}">
+                    <div class="user-header">
+                        <div class="user-name">
+                            <i class="fas fa-user"></i> {{ utilisateur.username }}
+                            {% if utilisateur.commercial %}
+                                <span style="font-size: 14px; color: #7f8c8d; margin-left: 10px;">
+                                    <i class="fas fa-user-tie"></i> {{ utilisateur.commercial }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="user-role-badge badge-{{ utilisateur.role }}">
+                                {{ utilisateur.role|upper }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="user-info">
+                        <div class="info-item">
+                            <div class="info-label">ID</div>
+                            <div class="info-value">{{ utilisateur.id }}</div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <div class="info-label">Date création</div>
+                            <div class="info-value">
+                                {{ utilisateur.date_creation.strftime('%d/%m/%Y') if utilisateur.date_creation }}
+                            </div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <div class="info-label">Dernière connexion</div>
+                            <div class="info-value">
+                                {% if utilisateur.last_login %}
+                                    {{ utilisateur.last_login.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    Jamais connecté
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <div class="info-label">Mot de passe</div>
+                            <div class="info-value">••••••••</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-between align-center">
+                        <div>
+                            <small style="color: #95a5a6;">
+                                {% if utilisateur.id == current_user.id %}
+                                    <i class="fas fa-star"></i> C'est votre compte
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="btn-group">
+                            {% if utilisateur.id != current_user.id %}
+                            <a href="#" onclick="modifierUtilisateur({{ utilisateur.id }})" 
+                               class="btn btn-small btn-warning">
+                                <i class="fas fa-edit"></i> Modifier
+                            </a>
+                            <a href="{{ url_for('supprimer_utilisateur', id=utilisateur.id) }}" 
+                               class="btn btn-small btn-danger"
+                               onclick="return confirm('Supprimer l\'utilisateur {{ utilisateur.username }} ? Cette action est irréversible.')">
+                                <i class="fas fa-trash"></i> Supprimer
+                            </a>
+                            {% else %}
+                            <button class="btn btn-small btn-secondary" disabled>
+                                <i class="fas fa-lock"></i> Votre compte
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>Aucun utilisateur trouvé</h3>
+                    <p>Créez votre premier utilisateur pour commencer.</p>
+                    <a href="{{ url_for('creer_compte') }}" class="btn btn-primary mt-20">
+                        <i class="fas fa-user-plus"></i> Créer un utilisateur
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- Guide d'utilisation -->
+            <div class="card mt-30">
+                <h3><i class="fas fa-question-circle"></i> Guide des Rôles</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rôle</th>
+                                <th>Permissions</th>
+                                <th>Accès</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge badge-danger">ADMIN</span></td>
+                                <td>Totales</td>
+                                <td>Toutes les fonctionnalités</td>
+                                <td>Accès complet, gestion utilisateurs, réinitialisation données</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-primary">COMMERCIAL</span></td>
+                                <td>Restreintes</td>
+                                <td>Vue limitée à ses propres données</td>
+                                <td>Voir et gérer uniquement ses créances et clients</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-success">USER</span></td>
+                                <td>Lecture seule</td>
+                                <td>Consultation générale</td>
+                                <td>Visualisation des données sans modification</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Suivi des Créances - SOCoMA &copy; {{ now.year }}</p>
+        <p class="footer-links">
+            <a href="{{ url_for('accueil') }}">Accueil</a> • 
+            <a href="{{ url_for('tableau_bord') }}">Tableau de bord</a> • 
+            <a href="{{ url_for('commerciaux') }}">Commerciaux</a>
+        </p>
+    </div>
+
+    <script>
+        function modifierUtilisateur(id) {
+            alert('La modification des utilisateurs sera disponible dans la prochaine version.');
+            // window.location.href = '/modifier_utilisateur/' + id;
+        }
+    </script>
+</body>
+</html>
